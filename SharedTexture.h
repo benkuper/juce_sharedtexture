@@ -34,8 +34,6 @@ public:
 	void renderGL();
 
 	void createImageDefinition();
-	void sendTexture();
-
 
 	class  Listener
 	{

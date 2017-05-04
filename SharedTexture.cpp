@@ -56,17 +56,6 @@ void SharedTextureSender::createImageDefinition()
 #endif
 }
 
-void SharedTextureSender::sendTexture()
-{
-	if (!image.isValid()) return;
-
-#if JUCE_WINDOWS
-	spoutSender->SendTexture(fbo->getTextureID(), GL_TEXTURE_2D, image.getWidth(),image.getHeight());
-#elif JUCE_MAC
-
-#endif
-}
-
 void SharedTextureSender::renderGL()
 {
 	if (!enabled) return;
@@ -84,7 +73,12 @@ void SharedTextureSender::renderGL()
 	g.beginTransparencyLayer(1);
 	listeners.call(&Listener::drawSharedTexture, g,r);
 	g.endTransparencyLayer();
-	sendTexture();
+
+#if JUCE_WINDOWS
+	spoutSender->SendTexture(fbo->getTextureID(), GL_TEXTURE_2D, image.getWidth(), image.getHeight());
+#elif JUCE_MAC
+
+#endif
 }
 
 
@@ -146,75 +140,31 @@ void SharedTextureReceiver::renderGL()
 	if (!isInit) createReceiver();
 	if (!isInit) return;
 
+
+#if JUCE_WINDOWS
 	unsigned int newWidth = 0, newHeight = 0;
 	bool isConnected;
 	receiver->CheckReceiver(sharingNameArr, newWidth, newHeight, isConnected);
 
 	if (!isConnected) return;
+#elif JUCE_MAC
+
+#endif
 
 	if (!image.isValid() || width != newWidth || height != newHeight) createImageDefinition();
 	if (!image.isValid()) return;
 
 	unsigned int receiveWidth = width, receiveHeight = height;
 
-	bool result = receiver->ReceiveTexture(sharingNameArr, receiveWidth, receiveHeight, fbo->getTextureID(),GL_TEXTURE_2D);
-	
-}
+#if JUCE_WINDOWS
+	receiver->ReceiveTexture(sharingNameArr, receiveWidth, receiveHeight, fbo->getTextureID(),GL_TEXTURE_2D);
+#elif JUCE_MAC
 
-/*
-void SharedTextureReceiver::paint(Graphics & g)
-{
-	DBG("repaint");
-	g.fillAll(Colours::orange);
-	
-	if (outImage.isValid())
-	{
-		DBG("draw");
-			g.drawImage(outImage, getLocalBounds().toFloat());
-	}
-}
-
-void SharedTextureReceiver::newOpenGLContextCreated()
-{
-	
-	if (receiverIsCreated) return;
-	unsigned int w = 0, h = 0;
-	receiver = new SpoutReceiver(); 
-	receiverIsCreated = receiver->CreateReceiver(sharingName.getCharPointer().getAddress(), w, h, true);
-
-	if (receiverIsCreated)
-	{
-		if (!image.isValid()) image = Image(Image::ARGB, w, h, true, OpenGLImageType()); //create the openGL image
-
-		buffer.initialise(context, image);
-		buffer.makeCurrentAndClear();
-		buffer.clear(Colours::yellow);
-		buffer.release();
-	}
-	repaint();
-}
-
-
-void SharedTextureReceiver::renderOpenGL()
-{
-	unsigned int w, h;
-	//buffer.makeCurrentRenderingTarget();
-	//bool result = receiver->ReceiveTexture(sharingName.getCharPointer().getAddress(), w, h, buffer.getTextureID(),buffer.getCurrentFrameBufferTarget(),false,buffer.getFrameBufferID());
-	//buffer.saveAndRelease();
-
-	//DBG("Result : " << (int)result << "/" << (int)buffer.width << "/" << image.width);
-
-	if (!outImage.isValid())
-	{
-		outImage = Image(Image::ARGB, image.width, image.height, true);
-	} 
-
-	Graphics g(outImage);
-	g.fillAll(Colours::green);
-	g.drawImage(image, outImage.getBounds().toFloat());
+#endif
 
 }
-*/
+
+
 
 juce_ImplementSingleton(SharedTextureManager)
 
