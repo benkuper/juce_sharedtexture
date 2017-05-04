@@ -89,7 +89,8 @@ SharedTextureReceiver::SharedTextureReceiver(const String &_sharingName) :
 	isInit(false),
 	enabled(true),
 	fbo(nullptr),
-	receiver(nullptr)
+	receiver(nullptr),
+	invertImage(true)
 {
 
 	if (sharingName.isEmpty()) sharingName = "Whatever";
@@ -157,7 +158,7 @@ void SharedTextureReceiver::renderGL()
 	unsigned int receiveWidth = width, receiveHeight = height;
 
 #if JUCE_WINDOWS
-	receiver->ReceiveTexture(sharingNameArr, receiveWidth, receiveHeight, fbo->getTextureID(),GL_TEXTURE_2D);
+	receiver->ReceiveTexture(sharingNameArr, receiveWidth, receiveHeight, fbo->getTextureID(),GL_TEXTURE_2D,invertImage);
 #elif JUCE_MAC
 
 #endif

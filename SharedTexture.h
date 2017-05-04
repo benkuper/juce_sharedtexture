@@ -69,6 +69,8 @@ public:
 	String sharingName;
 	bool isInit;
 	
+	bool invertImage;
+
 	Image image;
 	OpenGLFrameBuffer * fbo;
 	
