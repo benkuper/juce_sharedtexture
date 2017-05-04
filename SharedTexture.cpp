@@ -155,11 +155,10 @@ void SharedTextureReceiver::renderGL()
 	if (!image.isValid() || width != newWidth || height != newHeight) createImageDefinition();
 	if (!image.isValid()) return;
 
-	unsigned int receiveWidth = 0, receiveHeight = 0;
+	unsigned int receiveWidth = width, receiveHeight = height;
 
-	receiver->ReceiveTexture(sharingNameArr, receiveWidth, receiveHeight, fbo->getTextureID());
+	bool result = receiver->ReceiveTexture(sharingNameArr, receiveWidth, receiveHeight, fbo->getTextureID(),GL_TEXTURE_2D);
 	
-	DBG("Receive : " << (int)width << ", " << (int)newWidth << " / " << (int)receiveWidth);
 }
 
 /*
