@@ -55,7 +55,7 @@ class SpoutReceiver;
 class SharedTextureReceiver
 {
 public:
-	SharedTextureReceiver(const String &sharingName = "Whatever");
+	SharedTextureReceiver(const String &sharingName = String::empty);
 	~SharedTextureReceiver();
 
 #if JUCE_WINDOWS
@@ -71,9 +71,16 @@ public:
 	
 	bool invertImage;
 
+	OpenGLContext context;
+
 	Image image;
-	Image outImage;
 	OpenGLFrameBuffer * fbo;
+
+	bool useCPUImage; //useful for manipulations like getPixelAt, but not optimized
+	Image outImage;
+
+	void setUseCPUImage(bool value);
+	Image getImage();
 	
 	unsigned int width;
 	unsigned int height;
@@ -83,6 +90,18 @@ public:
 	void createReceiver();
 	void createImageDefinition();
 	void renderGL();
+
+
+	class  Listener
+	{
+	public:
+		virtual ~Listener() {}
+		virtual void textureUpdated() = 0;
+	};
+
+	ListenerList<Listener> listeners;
+	void addListener(Listener* newListener) { listeners.add(newListener); }
+	void removeListener(Listener* listener) { listeners.remove(listener); }
 
 };
 
@@ -101,7 +120,10 @@ public:
 	HashMap<String, SharedTextureReceiver *> receiversMap;
 
 	SharedTextureSender * addSender(const String &name);
-	SharedTextureReceiver * addReceiver(const String &name = "Whatever");
+	SharedTextureReceiver * addReceiver(const String &name = String::empty);
+
+	void removeSender(SharedTextureSender * sender);
+	void removeReceiver(SharedTextureReceiver * receiver);
 
 	void renderGL();
 };
