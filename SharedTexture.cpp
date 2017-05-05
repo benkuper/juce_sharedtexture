@@ -131,7 +131,8 @@ void SharedTextureReceiver::createImageDefinition()
 	if (!OpenGLContext::getCurrentContext()->isActive()) return;
 	
 	if (fbo != nullptr) fbo->release();
-	image = Image(Image::ARGB, width, height, true, OpenGLImageType()); //create the openGL image
+	image = Image(Image::ARGB, width, height, true,OpenGLImageType()); //create the openGL image
+	outImage = Image(Image::ARGB, width, height, true); //not gl to be able to manipulate
 	fbo = OpenGLImageType::getFrameBufferFrom(image);
 }
 
@@ -157,12 +158,19 @@ void SharedTextureReceiver::renderGL()
 
 	unsigned int receiveWidth = width, receiveHeight = height;
 
+	bool success = true;
 #if JUCE_WINDOWS
-	receiver->ReceiveTexture(sharingNameArr, receiveWidth, receiveHeight, fbo->getTextureID(),GL_TEXTURE_2D,invertImage);
+	success = receiver->ReceiveTexture(sharingNameArr, receiveWidth, receiveHeight, fbo->getTextureID(),GL_TEXTURE_2D,invertImage);
 #elif JUCE_MAC
 
 #endif
 
+	if (success)
+	{
+		
+		Graphics g(outImage);
+		g.drawImage(image, outImage.getBounds().toFloat());
+	}
 }
 
 

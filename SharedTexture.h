@@ -72,6 +72,7 @@ public:
 	bool invertImage;
 
 	Image image;
+	Image outImage;
 	OpenGLFrameBuffer * fbo;
 	
 	unsigned int width;
