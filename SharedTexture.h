@@ -59,7 +59,7 @@ public:
 	~SharedTextureReceiver();
 
 #if JUCE_WINDOWS
-	ScopedPointer<SpoutReceiver> receiver;
+	SpoutReceiver * receiver;
 	char sharingNameArr[256];
 #elif JUCE_MAC
 
@@ -68,7 +68,10 @@ public:
 	bool enabled;
 	String sharingName;
 	bool isInit;
-	
+	bool isConnected;
+
+	unsigned int width;
+	unsigned int height;
 	bool invertImage;
 
 	OpenGLContext context;
@@ -79,14 +82,12 @@ public:
 	bool useCPUImage; //useful for manipulations like getPixelAt, but not optimized
 	Image outImage;
 
+	void setConnected(bool value);
+
 	void setUseCPUImage(bool value);
 	Image getImage();
 	
-	unsigned int width;
-	unsigned int height;
-
 	bool canDraw();
-
 	void createReceiver();
 	void createImageDefinition();
 	void renderGL();
@@ -96,7 +97,8 @@ public:
 	{
 	public:
 		virtual ~Listener() {}
-		virtual void textureUpdated() = 0;
+		virtual void textureUpdated(SharedTextureReceiver *) {}
+		virtual void connectionChanged(SharedTextureReceiver *) {}
 	};
 
 	ListenerList<Listener> listeners;
@@ -125,5 +127,9 @@ public:
 	void removeSender(SharedTextureSender * sender);
 	void removeReceiver(SharedTextureReceiver * receiver);
 
-	void renderGL();
+	virtual void renderGL();
+
+	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SharedTextureManager)
+
+
 };

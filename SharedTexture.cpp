@@ -86,13 +86,15 @@ void SharedTextureSender::renderGL()
 //REC
 
 SharedTextureReceiver::SharedTextureReceiver(const String &_sharingName) :
+	receiver(nullptr),
 	sharingName(_sharingName),
 	isInit(false),
+	isConnected(false),
 	enabled(true),
 	fbo(nullptr),
-	receiver(nullptr),
 	invertImage(true),
 	useCPUImage(false),
+
 	image(Image::null),
 	outImage(Image::null)
 {
@@ -110,6 +112,13 @@ SharedTextureReceiver::SharedTextureReceiver(const String &_sharingName) :
 SharedTextureReceiver::~SharedTextureReceiver()
 {
 	receiver = nullptr;
+}
+
+void SharedTextureReceiver::setConnected(bool value)
+{
+	if (isConnected == value) return;
+	isConnected = value;
+	listeners.call(&Listener::connectionChanged, this);
 }
 
 void SharedTextureReceiver::setUseCPUImage(bool value)
@@ -161,9 +170,10 @@ void SharedTextureReceiver::renderGL()
 
 #if JUCE_WINDOWS
 	unsigned int newWidth = 0, newHeight = 0;
-	bool isConnected;
-	receiver->CheckReceiver(sharingNameArr, newWidth, newHeight, isConnected);
+	bool connectionResult;
+	receiver->CheckReceiver(sharingNameArr, newWidth, newHeight, connectionResult);
 
+	setConnected(connectionResult);
 	if (!isConnected) return;
 #elif JUCE_MAC
 
@@ -190,7 +200,7 @@ void SharedTextureReceiver::renderGL()
 		g.drawImage(image, outImage.getBounds().toFloat());
 	}
 
-	listeners.call(&Listener::textureUpdated);
+	listeners.call(&Listener::textureUpdated, this);
 }
 
 
@@ -204,8 +214,11 @@ SharedTextureManager::SharedTextureManager()
 
 SharedTextureManager::~SharedTextureManager()
 {
+	while (senders.size() > 0) removeSender(senders[0]);
+	while (receivers.size() > 0) removeReceiver(receivers[0]);
+	sendersMap.clear();
+	receiversMap.clear();
 }
-
 
 SharedTextureSender * SharedTextureManager::addSender(const String & name)
 {
