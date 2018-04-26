@@ -61,6 +61,8 @@
 
 */
 
+#if _WIN32
+
 #include "spoutDirectX.h"
 
 spoutDirectX::spoutDirectX() {
@@ -970,5 +972,7 @@ bool spoutDirectX::WriteDwordToRegistry(DWORD dwValue, const char *subkey, const
 		return false;
 
 }
+
+#endif //_WIN32
 
 

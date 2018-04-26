@@ -40,6 +40,8 @@
 		OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#if _WIN32
+
 #include "spoutGLextensions.h"
 
 #ifndef USE_GLEW
@@ -449,3 +451,5 @@ bool isExtensionSupported(const char *extension)
 
 }
 */
+
+#endif //_WIN32

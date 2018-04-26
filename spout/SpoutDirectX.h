@@ -28,8 +28,12 @@
 		OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
+
 #pragma once
-#ifndef __spoutDirectX__ 
+
+#if _WIN32
+
+#ifndef __spoutDirectX__
 #define __spoutDirectX__
 
 #include "SpoutCommon.h"
@@ -98,3 +102,5 @@ class SPOUT_DLLEXP spoutDirectX {
 };
 
 #endif
+
+#endif //_WIN32

@@ -37,6 +37,9 @@
 		04.01.17 - Added rgb2bgra, bgr2bgra, bgra2rgb, bgra2bgr
 
 */
+
+#if _WIN32
+
 #include "spoutCopy.h"
 
 spoutCopy::spoutCopy() {
@@ -695,3 +698,4 @@ void spoutCopy::bgra2bgr(void *bgra_source, void *bgr_dest, unsigned int width, 
 
 } // end bgra2bgr
 
+#endif //_WIN32s

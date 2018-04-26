@@ -28,6 +28,8 @@
 */
 #pragma once
 
+#if _WIN32
+
 #ifndef __SpoutSender__
 #define __SpoutSender__
 
@@ -83,3 +85,5 @@ protected :
 };
 
 #endif
+
+#endif //WIN32

@@ -1,4 +1,4 @@
-﻿//
+//
 //		SpoutReceiver
 //
 //		Wrapper class so that a receiver object can be created independent of a sender
@@ -52,6 +52,9 @@
 		OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
+
+#if _WIN32
+
 #include "SpoutReceiver.h"
 
 SpoutReceiver::SpoutReceiver()
@@ -300,3 +303,5 @@ int SpoutReceiver::GetVerticalSync()
 {
 	return spout.interop.GetVerticalSync();
 }
+
+#endif //_WIN32

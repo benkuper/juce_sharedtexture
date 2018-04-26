@@ -29,7 +29,12 @@
 		OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
+
+
 #pragma once
+
+#if !__APPLE__
+
 #ifndef __spoutCopy__ // standard way as well
 #define __spoutCopy__
 
@@ -89,3 +94,5 @@ class SPOUT_DLLEXP spoutCopy {
 };
 
 #endif
+
+#endif //APPLE

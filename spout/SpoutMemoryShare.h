@@ -34,6 +34,9 @@
 
  */
 #pragma once
+
+#if _WIN32
+
 #ifndef __spoutMemoryShare__
 #define __spoutMemoryShare__
 
@@ -76,3 +79,5 @@ protected:
 };
 
 #endif
+
+#endif //_WIN32

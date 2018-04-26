@@ -32,6 +32,8 @@
 */
 #pragma once
 
+#if _WIN32
+
 #ifndef __SpoutSharedMemory_ // standard way as well
 #define __SpoutSharedMemory_
 
@@ -81,3 +83,5 @@ private:
 };
 
 #endif
+
+#endif //WIN32

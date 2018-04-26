@@ -33,6 +33,9 @@
 
  */
 #pragma once
+
+#if _WIN32
+
 #ifndef __spoutSenderNames__ // standard way as well
 #define __spoutSenderNames__
 
@@ -162,3 +165,5 @@ protected:
 };
 
 #endif
+
+#endif //_WIN32

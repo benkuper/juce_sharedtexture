@@ -1,4 +1,4 @@
-﻿/**
+/**
 
 	spoutGLDXinterop.cpp
 
@@ -193,6 +193,8 @@
 		04.02.17	- corrected test for fbo blit extension
 
 */
+
+#if _WIN32
 
 #include "spoutGLDXinterop.h"
 
@@ -4249,3 +4251,4 @@ bool spoutGLDXinterop::CloseOpenGL()
 	return true;
 }
 
+#endif //_WIN32

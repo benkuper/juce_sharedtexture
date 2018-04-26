@@ -40,6 +40,9 @@
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 */
+
+#if _WIN32
+
 #include "spoutMemoryShare.h"
 #include <assert.h>
 
@@ -209,3 +212,4 @@ void spoutMemoryShare::UnlockSenderMemory()
 	senderMem->Unlock();
 }
 
+#endif //_WIN32
