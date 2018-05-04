@@ -4,11 +4,12 @@
 #endif
 
 SharedTextureSender::SharedTextureSender(const String &name) :
-	sharingName(name),
-	enabled(true),
 	isInit(false),
-	fbo(nullptr),
-	width(0),height(0)
+    sharingName(name),
+    enabled(true),
+    fbo(nullptr),
+	width(0),
+    height(0)
 {
 
 #if JUCE_WINDOWS
@@ -86,23 +87,24 @@ void SharedTextureSender::renderGL()
 //REC
 
 SharedTextureReceiver::SharedTextureReceiver(const String &_sharingName) :
+#if JUCE_WINDOWS
 	receiver(nullptr),
-	sharingName(_sharingName),
-	isInit(false),
+#endif
+    enabled(true),
+    sharingName(_sharingName),
+    isInit(false),
 	isConnected(false),
-	enabled(true),
-	fbo(nullptr),
 	invertImage(true),
-	useCPUImage(false),
-
+    fbo(nullptr),
 	image(Image::null),
-	outImage(Image::null)
+	outImage(Image::null),
+    useCPUImage(false)
 {
 
-	sharingName.copyToUTF8(sharingNameArr, 256);
-
+	
 #if JUCE_WINDOWS
-	receiver = new SpoutReceiver();
+    sharingName.copyToUTF8(sharingNameArr, 256);
+    receiver = new SpoutReceiver();
 #elif JUCE_MAC
 
 #endif
@@ -111,7 +113,9 @@ SharedTextureReceiver::SharedTextureReceiver(const String &_sharingName) :
 
 SharedTextureReceiver::~SharedTextureReceiver()
 {
-	receiver = nullptr;
+#if JUCE_WINDOWS
+    receiver = nullptr;
+#endif
 }
 
 void SharedTextureReceiver::setConnected(bool value)
@@ -175,13 +179,13 @@ void SharedTextureReceiver::renderGL()
 
 	setConnected(connectionResult);
 	if (!isConnected) return;
+    
+    if (!image.isValid() || width != newWidth || height != newHeight) createImageDefinition();
+    if (!image.isValid()) return;
+    
 #elif JUCE_MAC
 
 #endif
-
-	if (!image.isValid() || width != newWidth || height != newHeight) createImageDefinition();
-	if (!image.isValid()) return;
-
 	unsigned int receiveWidth = width, receiveHeight = height;
 
 	bool success = true;

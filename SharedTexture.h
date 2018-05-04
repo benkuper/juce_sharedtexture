@@ -113,7 +113,7 @@ public:
 	juce_DeclareSingleton(SharedTextureManager,true);
 
 	SharedTextureManager();
-	~SharedTextureManager();
+	virtual ~SharedTextureManager();
 
 	OwnedArray<SharedTextureSender> senders;
 	OwnedArray<SharedTextureReceiver> receivers;
