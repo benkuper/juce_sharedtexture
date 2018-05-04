@@ -95,10 +95,10 @@ SharedTextureReceiver::SharedTextureReceiver(const String &_sharingName) :
     isInit(false),
 	isConnected(false),
 	invertImage(true),
+    image(Image::null),
     fbo(nullptr),
-	image(Image::null),
-	outImage(Image::null),
-    useCPUImage(false)
+    useCPUImage(false),
+	outImage(Image::null)
 {
 
 	
@@ -186,11 +186,11 @@ void SharedTextureReceiver::renderGL()
 #elif JUCE_MAC
 
 #endif
-	unsigned int receiveWidth = width, receiveHeight = height;
-
+	
 	bool success = true;
 #if JUCE_WINDOWS
-	success = receiver->ReceiveTexture(sharingNameArr, receiveWidth, receiveHeight, fbo->getTextureID(),GL_TEXTURE_2D,invertImage);
+    unsigned int receiveWidth = width, receiveHeight = height;
+    success = receiver->ReceiveTexture(sharingNameArr, receiveWidth, receiveHeight, fbo->getTextureID(),GL_TEXTURE_2D,invertImage);
 #elif JUCE_MAC
 
 #endif
