@@ -55,7 +55,7 @@ class SpoutReceiver;
 class SharedTextureReceiver
 {
 public:
-	SharedTextureReceiver(const String &sharingName = String::empty);
+	SharedTextureReceiver(const String &sharingName = "");
 	~SharedTextureReceiver();
 
 #if JUCE_WINDOWS
@@ -122,7 +122,7 @@ public:
 	HashMap<String, SharedTextureReceiver *> receiversMap;
 
 	SharedTextureSender * addSender(const String &name);
-	SharedTextureReceiver * addReceiver(const String &name = String::empty);
+	SharedTextureReceiver * addReceiver(const String &name = "");
 
 	void removeSender(SharedTextureSender * sender);
 	void removeReceiver(SharedTextureReceiver * receiver);

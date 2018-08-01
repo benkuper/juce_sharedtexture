@@ -95,10 +95,8 @@ SharedTextureReceiver::SharedTextureReceiver(const String &_sharingName) :
     isInit(false),
 	isConnected(false),
 	invertImage(true),
-    image(Image::null),
     fbo(nullptr),
-    useCPUImage(false),
-	outImage(Image::null)
+    useCPUImage(false)
 {
 
 	
@@ -129,7 +127,7 @@ void SharedTextureReceiver::setUseCPUImage(bool value)
 {
 	if (useCPUImage == value) return;
 	useCPUImage = value;
-	if (!useCPUImage) outImage = Image::null;
+	if (!useCPUImage) outImage = Image();
 }
 
 Image SharedTextureReceiver::getImage()
