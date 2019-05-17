@@ -188,7 +188,6 @@ void SharedTextureReceiver::renderGL()
 	if (!image.isValid() || width != newWidth || height != newHeight) createImageDefinition();
 	if (!image.isValid()) return;
 
-	unsigned int receiveWidth = width, receiveHeight = height;
 
 	bool success = true;
 #if JUCE_WINDOWS
