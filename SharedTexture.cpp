@@ -22,7 +22,6 @@ SharedTextureSender::SharedTextureSender(const String &name) :
 
 SharedTextureSender::~SharedTextureSender()
 {
-
 }
 
 bool SharedTextureSender::canDraw()
@@ -93,10 +92,7 @@ SharedTextureReceiver::SharedTextureReceiver(const String &_sharingName) :
 	enabled(true),
 	fbo(nullptr),
 	invertImage(true),
-	useCPUImage(false),
-
-	image(Image::null),
-	outImage(Image::null)
+	useCPUImage(false)
 {
 
 	sharingName.copyToUTF8(sharingNameArr, 256);
@@ -125,10 +121,10 @@ void SharedTextureReceiver::setUseCPUImage(bool value)
 {
 	if (useCPUImage == value) return;
 	useCPUImage = value;
-	if (!useCPUImage) outImage = Image::null;
+	if (!useCPUImage) outImage = Image();
 }
 
-Image SharedTextureReceiver::getImage()
+Image & SharedTextureReceiver::getImage()
 {
 	return useCPUImage ? outImage : image;
 }
@@ -163,6 +159,7 @@ void SharedTextureReceiver::createImageDefinition()
 
 void SharedTextureReceiver::renderGL()
 {
+	
 	if (!enabled) return;
 	if (!isInit) createReceiver();
 	if (!isInit) return;
@@ -179,9 +176,10 @@ void SharedTextureReceiver::renderGL()
 
 #endif
 
+	
 	if (!image.isValid() || width != newWidth || height != newHeight) createImageDefinition();
 	if (!image.isValid()) return;
-
+	
 	unsigned int receiveWidth = width, receiveHeight = height;
 
 	bool success = true;

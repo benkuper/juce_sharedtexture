@@ -12,7 +12,7 @@ public:
 	~SharedTextureSender();
 
 #if JUCE_WINDOWS
-	ScopedPointer<SpoutSender> spoutSender;
+	std::unique_ptr<SpoutSender> spoutSender;
 #elif JUCE_MAC
 
 #endif
@@ -23,7 +23,7 @@ public:
 	bool enabled;
 
 	Image image;
-	OpenGLFrameBuffer * fbo;
+	OpenGLFrameBuffer *fbo;
 
 	int width;
 	int height;
@@ -55,7 +55,7 @@ class SpoutReceiver;
 class SharedTextureReceiver
 {
 public:
-	SharedTextureReceiver(const String &sharingName = String::empty);
+	SharedTextureReceiver(const String &sharingName = String());
 	~SharedTextureReceiver();
 
 #if JUCE_WINDOWS
@@ -85,7 +85,7 @@ public:
 	void setConnected(bool value);
 
 	void setUseCPUImage(bool value);
-	Image getImage();
+	Image & getImage(); 
 	
 	bool canDraw();
 	void createReceiver();
@@ -122,7 +122,7 @@ public:
 	HashMap<String, SharedTextureReceiver *> receiversMap;
 
 	SharedTextureSender * addSender(const String &name);
-	SharedTextureReceiver * addReceiver(const String &name = String::empty);
+	SharedTextureReceiver * addReceiver(const String &name = String());
 
 	void removeSender(SharedTextureSender * sender);
 	void removeReceiver(SharedTextureReceiver * receiver);
