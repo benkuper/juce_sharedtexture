@@ -13,7 +13,7 @@ SharedTextureSender::SharedTextureSender(const String &name) :
 {
 
 #if JUCE_WINDOWS
-	spoutSender = new SpoutSender();
+	spoutSender.reset(new SpoutSender());
 #elif JUCE_MAC
 
 #endif
