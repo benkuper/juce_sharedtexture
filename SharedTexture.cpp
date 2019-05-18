@@ -170,8 +170,9 @@ void SharedTextureReceiver::renderGL()
 	if (!isInit) return;
 
 
-#if JUCE_WINDOWS
 	unsigned int newWidth = 0, newHeight = 0;
+
+#if JUCE_WINDOWS
 	bool connectionResult;
 	receiver->CheckReceiver(sharingNameArr, newWidth, newHeight, connectionResult);
 
@@ -190,6 +191,7 @@ void SharedTextureReceiver::renderGL()
 
 
 	bool success = true;
+
 #if JUCE_WINDOWS
     unsigned int receiveWidth = width, receiveHeight = height;
     success = receiver->ReceiveTexture(sharingNameArr, receiveWidth, receiveHeight, fbo->getTextureID(),GL_TEXTURE_2D,invertImage);
