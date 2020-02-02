@@ -72,7 +72,7 @@ void SharedTextureSender::renderGL()
 	image.clear(r);
 	Graphics g(image);
 	g.beginTransparencyLayer(1);
-	listeners.call(&Listener::drawSharedTexture, g,r);
+	sharedTextureListeners.call(&SharedTextureListener::drawSharedTexture, g, r);
 	g.endTransparencyLayer();
 
 #if JUCE_WINDOWS

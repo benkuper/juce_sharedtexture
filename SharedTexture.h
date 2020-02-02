@@ -35,16 +35,16 @@ public:
 
 	void createImageDefinition();
 
-	class  Listener
+	class SharedTextureListener
 	{
 	public:
-		virtual ~Listener() {}
+		virtual ~SharedTextureListener() {}
 		virtual void drawSharedTexture(Graphics &g, juce::Rectangle<int> r) = 0;
 	};
 
-	ListenerList<Listener> listeners;
-	void addListener(Listener* newListener) { listeners.add(newListener); }
-	void removeListener(Listener* listener) { listeners.remove(listener); }
+	ListenerList<SharedTextureListener> sharedTextureListeners;
+	void addSharedTextureListener(SharedTextureListener* newListener) { sharedTextureListeners.add(newListener); }
+	void removeSharedTextureListener(SharedTextureListener* listener) { sharedTextureListeners.remove(listener); }
 };
 
 
