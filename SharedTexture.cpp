@@ -3,13 +3,13 @@
 #include "SharedTexture.h"
 #endif
 
-SharedTextureSender::SharedTextureSender(const String &name) :
+SharedTextureSender::SharedTextureSender(const String &name, int width, int height, bool enabled) :
 	isInit(false),
     sharingName(name),
-    enabled(true),
+    enabled(enabled),
     fbo(nullptr),
-	width(0),
-    height(0)
+	width(width),
+    height(height)
 {
 
 #if JUCE_WINDOWS
@@ -17,8 +17,6 @@ SharedTextureSender::SharedTextureSender(const String &name) :
 #elif JUCE_MAC
 
 #endif
-
-	setSize(512, 512);
 }
 
 SharedTextureSender::~SharedTextureSender()
@@ -41,27 +39,53 @@ void SharedTextureSender::createImageDefinition()
 	if (width == 0 || height == 0) return;
 
 	if(fbo != nullptr) fbo->release();
-	image = Image(Image::ARGB, width, height, true, OpenGLImageType()); //create the openGL image
-	fbo = OpenGLImageType::getFrameBufferFrom(image);
 
-
-#if JUCE_WINDOWS
-	if(isInit) spoutSender->UpdateSender(sharingName.getCharPointer(), image.getWidth(),image.getHeight());
-	else
+	if (enabled)
 	{
-		spoutSender->CreateSender(sharingName.getCharPointer(), image.getWidth(), image.getHeight());
-		isInit = true;
+		image = Image(Image::ARGB, width, height, true, OpenGLImageType()); //create the openGL image
+		fbo = OpenGLImageType::getFrameBufferFrom(image);
 	}
+
+	setupNativeSender();
+}
+
+void SharedTextureSender::setupNativeSender()
+{
+	if (enabled)
+	{
+#if JUCE_WINDOWS
+		if (isInit) spoutSender->UpdateSender(sharingName.getCharPointer(), image.getWidth(), image.getHeight());
+		else
+		{
+			spoutSender->CreateSender(sharingName.getCharPointer(), image.getWidth(), image.getHeight());
+			isInit = true;
+		}
 #elif JUCE_MAC
 
 #endif
+	}
+	else
+	{
+#if JUCE_WINDOWS
+		if (isInit) spoutSender->ReleaseSender();
+#elif JUCE_MAC
+
+#endif
+		isInit = false;
+	}
+
+
 }
 
 void SharedTextureSender::renderGL()
 {
-	if (!enabled) return;
+	if (!enabled)
+	{
+		if (isInit) setupNativeSender();
+		return;
+	}
 
-	if (!image.isValid() || image.getWidth() != width || image.getHeight() != height) createImageDefinition();
+	if (!isInit || !image.isValid() || image.getWidth() != width || image.getHeight() != height) createImageDefinition();
 	if (!image.isValid())
 	{
 		DBG("Problem creating image");
@@ -80,6 +104,11 @@ void SharedTextureSender::renderGL()
 #elif JUCE_MAC
 
 #endif
+}
+
+void SharedTextureSender::setEnabled(bool value)
+{
+	enabled = value;
 }
 
 
@@ -228,10 +257,10 @@ SharedTextureManager::~SharedTextureManager()
 	receiversMap.clear();
 }
 
-SharedTextureSender * SharedTextureManager::addSender(const String & name)
+SharedTextureSender * SharedTextureManager::addSender(const String & name, int width, int height, bool enabled)
 {
 	if (sendersMap[name] != nullptr) return sendersMap[name];
-	SharedTextureSender * s = new SharedTextureSender(name);
+	SharedTextureSender * s = new SharedTextureSender(name, width, height, enabled);
 	senders.add(s);
 	sendersMap.set(name, s);
 	return s;

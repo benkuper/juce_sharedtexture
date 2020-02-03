@@ -8,7 +8,7 @@ class SpoutSender;
 class SharedTextureSender
 {
 public:
-	SharedTextureSender(const String &name);
+	SharedTextureSender(const String &name, int width, int height, bool enabled = true);
 	~SharedTextureSender();
 
 #if JUCE_WINDOWS
@@ -33,7 +33,11 @@ public:
 	void setSize(int w, int h);
 	void renderGL();
 
+
+	void setEnabled(bool value);
+
 	void createImageDefinition();
+	void setupNativeSender();
 
 	class SharedTextureListener
 	{
@@ -121,7 +125,7 @@ public:
 	HashMap<String, SharedTextureSender *> sendersMap;
 	HashMap<String, SharedTextureReceiver *> receiversMap;
 
-	SharedTextureSender * addSender(const String &name);
+	SharedTextureSender * addSender(const String &name, int width, int height, bool enabled = true);
 	SharedTextureReceiver * addReceiver(const String &name = String());
 
 	void removeSender(SharedTextureSender * sender);
