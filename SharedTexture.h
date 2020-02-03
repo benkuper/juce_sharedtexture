@@ -31,8 +31,10 @@ public:
 	bool canDraw();
 
 	void setSize(int w, int h);
-	void renderGL();
 
+	void initGL();
+	void renderGL();
+	void clearGL();
 
 	void setEnabled(bool value);
 
@@ -94,7 +96,10 @@ public:
 	bool canDraw();
 	void createReceiver();
 	void createImageDefinition();
+
+	void initGL();
 	void renderGL();
+	void clearGL();
 
 
 	class  Listener
@@ -131,7 +136,9 @@ public:
 	void removeSender(SharedTextureSender * sender);
 	void removeReceiver(SharedTextureReceiver * receiver);
 
+	virtual void initGL();
 	virtual void renderGL();
+	virtual void clearGL();
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SharedTextureManager)
 
