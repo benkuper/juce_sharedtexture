@@ -141,7 +141,9 @@ SharedTextureReceiver::SharedTextureReceiver(const String& _sharingName) :
 	isConnected(false),
 	invertImage(true),
 	fbo(nullptr),
-	useCPUImage(false)
+	useCPUImage(false),
+	width(0),
+	height(0)
 {
 
 
@@ -188,7 +190,7 @@ bool SharedTextureReceiver::canDraw()
 void SharedTextureReceiver::createReceiver()
 {
 #if JUCE_WINDOWS
-	if (!isInit)	isInit = receiver->CreateReceiver(sharingNameArr, width, height, sharingName.isEmpty());
+	if (!isInit) isInit = receiver->CreateReceiver(sharingNameArr, width, height, sharingName.isEmpty());
 #elif JUCE_MAC
 
 #endif
