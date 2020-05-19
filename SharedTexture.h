@@ -65,7 +65,7 @@ public:
 	~SharedTextureReceiver();
 
 #if JUCE_WINDOWS
-	SpoutReceiver * receiver;
+	std::unique_ptr<SpoutReceiver> receiver;
 	char sharingNameArr[256];
 #elif JUCE_MAC
 
