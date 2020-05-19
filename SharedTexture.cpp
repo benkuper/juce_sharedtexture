@@ -149,7 +149,7 @@ SharedTextureReceiver::SharedTextureReceiver(const String& _sharingName) :
 
 #if JUCE_WINDOWS
 	sharingName.copyToUTF8(sharingNameArr, 256);
-	receiver = new SpoutReceiver();
+	receiver.reset(new SpoutReceiver());
 #elif JUCE_MAC
 
 #endif
