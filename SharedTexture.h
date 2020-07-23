@@ -20,7 +20,9 @@ public:
 	bool isInit;
 
 	String sharingName;
+	bool sharingNameChanged;
 	bool enabled;
+
 
 	Image image;
 	OpenGLFrameBuffer *fbo;
@@ -36,10 +38,11 @@ public:
 	void renderGL();
 	void clearGL();
 
+	void setSharingName(String value);
 	void setEnabled(bool value);
 
 	void createImageDefinition();
-	void setupNativeSender();
+	void setupNativeSender(bool forceRecreation = false);
 
 	class SharedTextureListener
 	{
