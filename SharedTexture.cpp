@@ -6,6 +6,7 @@
 SharedTextureSender::SharedTextureSender(const String& name, int width, int height, bool enabled) :
 	isInit(false),
 	sharingName(name),
+	sharingNameChanged(false),
 	enabled(enabled),
 	fbo(nullptr),
 	width(width),
@@ -49,14 +50,15 @@ void SharedTextureSender::createImageDefinition()
 	setupNativeSender();
 }
 
-void SharedTextureSender::setupNativeSender()
+void SharedTextureSender::setupNativeSender(bool forceRecreation)
 {
 	if (enabled)
 	{
 #if JUCE_WINDOWS
-		if (isInit) spoutSender->UpdateSender(sharingName.getCharPointer(), image.getWidth(), image.getHeight());
+		if (isInit && !forceRecreation) spoutSender->UpdateSender(sharingName.getCharPointer(), image.getWidth(), image.getHeight());
 		else
 		{
+			if(isInit) spoutSender->ReleaseSender();
 			spoutSender->CreateSender(sharingName.getCharPointer(), image.getWidth(), image.getHeight());
 			isInit = true;
 		}
@@ -74,7 +76,7 @@ void SharedTextureSender::setupNativeSender()
 		isInit = false;
 	}
 
-
+	sharingNameChanged = false;
 }
 
 void SharedTextureSender::initGL()
@@ -88,6 +90,11 @@ void SharedTextureSender::renderGL()
 	{
 		if (isInit) setupNativeSender();
 		return;
+	}
+
+	if (sharingNameChanged)
+	{
+		setupNativeSender(true);
 	}
 
 	if (!isInit || !image.isValid() || image.getWidth() != width || image.getHeight() != height) createImageDefinition();
@@ -121,6 +128,13 @@ void SharedTextureSender::clearGL()
 #endif
 
 	isInit = false;
+}
+
+void SharedTextureSender::setSharingName(String value)
+{
+	if (sharingName == value) return;
+	sharingName = value;
+	sharingNameChanged = true;
 }
 
 void SharedTextureSender::setEnabled(bool value)
