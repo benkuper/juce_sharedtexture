@@ -1,10 +1,6 @@
 #pragma once
 
 
-#if JUCE_WINDOWS
-class SpoutSender;
-#endif
-
 class SharedTextureSender
 {
 public:
@@ -12,7 +8,7 @@ public:
 	~SharedTextureSender();
 
 #if JUCE_WINDOWS
-	std::unique_ptr<SpoutSender> spoutSender;
+	SPOUTLIBRARY * spoutSender;
 #elif JUCE_MAC
 
 #endif
@@ -68,7 +64,7 @@ public:
 	~SharedTextureReceiver();
 
 #if JUCE_WINDOWS
-	std::unique_ptr<SpoutReceiver> receiver;
+	SPOUTLIBRARY * receiver;
 	char sharingNameArr[256];
 #elif JUCE_MAC
 
@@ -142,6 +138,18 @@ public:
 	virtual void initGL();
 	virtual void renderGL();
 	virtual void clearGL();
+
+	class  Listener
+	{
+	public:
+		virtual ~Listener() {}
+		virtual void receiverRemoved(SharedTextureReceiver * receiver) {}
+		virtual void senderRemoved(SharedTextureSender * sender) {}
+	};
+
+	ListenerList<Listener> listeners;
+	void addListener(Listener* newListener) { listeners.add(newListener); }
+	void removeListener(Listener* listener) { listeners.remove(listener); }
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SharedTextureManager)
 

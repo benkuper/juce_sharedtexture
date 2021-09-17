@@ -23,6 +23,7 @@
   license:          GPLv3
 
   dependencies:     juce_core, juce_opengl
+  windowsLibs :		SpoutLibrary
 
  END_JUCE_MODULE_DECLARATION
 
@@ -43,7 +44,8 @@
 #include "juce_gui_basics/juce_gui_basics.h"
 #include "juce_opengl/juce_opengl.h"
 using namespace juce;
-
+using namespace juce::gl;
+#include "SpoutLibrary.h"
 #include "SharedTexture.h"
 
 

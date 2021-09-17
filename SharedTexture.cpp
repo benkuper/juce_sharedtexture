@@ -1,7 +1,4 @@
-#if JUCE_WINDOWS
-#include "spout/Spout.h"
 #include "SharedTexture.h"
-#endif
 
 SharedTextureSender::SharedTextureSender(const String& name, int width, int height, bool enabled) :
 	isInit(false),
@@ -14,7 +11,7 @@ SharedTextureSender::SharedTextureSender(const String& name, int width, int heig
 {
 
 #if JUCE_WINDOWS
-	spoutSender.reset(new SpoutSender());
+	spoutSender = GetSpout();
 #elif JUCE_MAC
 
 #endif
@@ -22,6 +19,11 @@ SharedTextureSender::SharedTextureSender(const String& name, int width, int heig
 
 SharedTextureSender::~SharedTextureSender()
 {
+#if JUCE_WINDOWS
+	spoutSender->ReleaseSender();
+	spoutSender->Release();
+	spoutSender = nullptr;
+#endif
 }
 
 bool SharedTextureSender::canDraw()
@@ -43,8 +45,11 @@ void SharedTextureSender::createImageDefinition()
 
 	if (enabled)
 	{
-		image = Image(Image::ARGB, width, height, true, OpenGLImageType()); //create the openGL image
-		fbo = OpenGLImageType::getFrameBufferFrom(image);
+		MessageManager::callAsync([&] {
+
+			image = Image(Image::ARGB, width, height, true, OpenGLImageType()); //create the openGL image
+			fbo = OpenGLImageType::getFrameBufferFrom(image);
+		});
 	}
 
 	setupNativeSender();
@@ -112,7 +117,7 @@ void SharedTextureSender::renderGL()
 	g.endTransparencyLayer();
 
 #if JUCE_WINDOWS
-	spoutSender->SendTexture(fbo->getTextureID(), GL_TEXTURE_2D, image.getWidth(), image.getHeight());
+	spoutSender->SendTexture(fbo->getTextureID(), juce::gl::GL_TEXTURE_2D, image.getWidth(), image.getHeight());
 #elif JUCE_MAC
 
 #endif
@@ -163,7 +168,7 @@ SharedTextureReceiver::SharedTextureReceiver(const String& _sharingName) :
 
 #if JUCE_WINDOWS
 	sharingName.copyToUTF8(sharingNameArr, 256);
-	receiver.reset(new SpoutReceiver());
+
 #elif JUCE_MAC
 
 #endif
@@ -173,6 +178,8 @@ SharedTextureReceiver::SharedTextureReceiver(const String& _sharingName) :
 SharedTextureReceiver::~SharedTextureReceiver()
 {
 #if JUCE_WINDOWS
+	receiver->ReleaseReceiver();
+	receiver->Release();
 	receiver = nullptr;
 #endif
 }
@@ -204,13 +211,20 @@ bool SharedTextureReceiver::canDraw()
 void SharedTextureReceiver::createReceiver()
 {
 #if JUCE_WINDOWS
-	if (!isInit) isInit = receiver->CreateReceiver(sharingNameArr, width, height, sharingName.isEmpty());
+	if (!isInit)
+	{
+		receiver = GetSpout();
+		isInit = receiver->CreateReceiver(sharingNameArr, width, height, sharingName.isEmpty());
+
+
+	}
 #elif JUCE_MAC
 
 #endif
 
 	if (!isInit) return;
 }
+
 
 void SharedTextureReceiver::createImageDefinition()
 {
@@ -233,18 +247,26 @@ void SharedTextureReceiver::renderGL()
 {
 
 	if (!enabled) return;
-	if (!isInit) createReceiver();
-	if (!isInit) return;
+	if (!isInit)
+	{
+		createReceiver();
+		return;
+	}
 
 
 	unsigned int newWidth = 0, newHeight = 0;
 
 #if JUCE_WINDOWS
-	bool connectionResult;
-	receiver->CheckReceiver(sharingNameArr, newWidth, newHeight, connectionResult);
+	bool connectionResult = true;
+	//receiver->CheckReceiver(sharingNameArr, newWidth, newHeight, connectionResult);
 
 	setConnected(connectionResult);
-	if (!isConnected) return;
+	//if (!isConnected) return;
+
+	if (receiver->IsUpdated()) {
+		newWidth = receiver->GetSenderWidth();
+		newHeight = receiver->GetSenderHeight();
+	}
 
 	if (!image.isValid() || width != newWidth || height != newHeight) createImageDefinition();
 	if (!image.isValid()) return;
@@ -261,7 +283,7 @@ void SharedTextureReceiver::renderGL()
 
 #if JUCE_WINDOWS
 	unsigned int receiveWidth = width, receiveHeight = height;
-	success = receiver->ReceiveTexture(sharingNameArr, receiveWidth, receiveHeight, fbo->getTextureID(), GL_TEXTURE_2D, invertImage);
+	success = receiver->ReceiveTexture(fbo->getTextureID(), juce::gl::GL_TEXTURE_2D, invertImage);
 #elif JUCE_MAC
 
 #endif
@@ -320,13 +342,17 @@ SharedTextureReceiver* SharedTextureManager::addReceiver(const String& name)
 void SharedTextureManager::removeSender(SharedTextureSender* sender)
 {
 	sendersMap.removeValue(sender);
-	senders.removeObject(sender, true);
+	senders.removeObject(sender, false);
+	listeners.call(&Listener::senderRemoved, sender);
+	delete sender;
 }
 
 void SharedTextureManager::removeReceiver(SharedTextureReceiver* receiver)
 {
 	receiversMap.removeValue(receiver);
-	receivers.removeObject(receiver, true);
+	receivers.removeObject(receiver, false);
+	listeners.call(&Listener::receiverRemoved, receiver);
+	delete receiver;
 }
 
 void SharedTextureManager::initGL()

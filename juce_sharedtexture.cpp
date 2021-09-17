@@ -16,18 +16,6 @@
 #endif
 
 #include "juce_sharedtexture.h"
-
-#include "spout/SpoutCopy.cpp"
-#include "spout/SpoutDirectX.cpp"
-#include "spout/SpoutGLDXinterop.cpp"
-#include "spout/SpoutGLextensions.cpp"
-#include "spout/SpoutMemoryShare.cpp"
-#include "spout/SpoutReceiver.cpp"
-#include "spout/SpoutSDK.cpp"
-#include "spout/SpoutSender.cpp"
-#include "spout/SpoutSenderNames.cpp"
-#include "spout/SpoutSharedMemory.cpp"
-
 #include "SharedTexture.cpp"
 
 
