@@ -45,8 +45,11 @@
 #include "juce_opengl/juce_opengl.h"
 using namespace juce;
 using namespace juce::gl;
-#include "SpoutLibrary.h"
-#include "SharedTexture.h"
 
+#if JUCE_WINDOWS
+#include "SpoutLibrary.h"
+#endif
+
+#include "SharedTexture.h"
 
 #endif   // JUCE_SHAREDTEXTURE_UI_H_INCLUDED
