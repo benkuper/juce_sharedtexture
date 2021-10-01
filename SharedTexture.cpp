@@ -1,4 +1,3 @@
-#include "SharedTexture.h"
 
 SharedTextureSender::SharedTextureSender(const String& name, int width, int height, bool enabled) :
 	isInit(false),
@@ -45,11 +44,11 @@ void SharedTextureSender::createImageDefinition()
 
 	if (enabled)
 	{
-		MessageManager::callAsync([&] {
+		//MessageManager::callAsync([&] {
 
 			image = Image(Image::ARGB, width, height, true, OpenGLImageType()); //create the openGL image
 			fbo = OpenGLImageType::getFrameBufferFrom(image);
-		});
+		//});
 	}
 
 	setupNativeSender();
@@ -86,7 +85,7 @@ void SharedTextureSender::setupNativeSender(bool forceRecreation)
 
 void SharedTextureSender::initGL()
 {
-	createImageDefinition();
+	//createImageDefinition();
 }
 
 void SharedTextureSender::renderGL()
