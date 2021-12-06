@@ -177,8 +177,11 @@ SharedTextureReceiver::SharedTextureReceiver(const String& _sharingName) :
 SharedTextureReceiver::~SharedTextureReceiver()
 {
 #if JUCE_WINDOWS
-	receiver->ReleaseReceiver();
-	receiver->Release();
+	if (receiver != nullptr)
+	{
+		receiver->ReleaseReceiver();
+		receiver->Release();
+	}
 	receiver = nullptr;
 #endif
 }
