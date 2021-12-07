@@ -65,7 +65,6 @@ public:
 
 #if JUCE_WINDOWS
 	SPOUTLIBRARY * receiver;
-	char sharingNameArr[256];
 #elif JUCE_MAC
 
 #endif
@@ -143,8 +142,8 @@ public:
 	{
 	public:
 		virtual ~Listener() {}
-		virtual void receiverRemoved(SharedTextureReceiver * receiver) {}
-		virtual void senderRemoved(SharedTextureSender * sender) {}
+		virtual void receiverRemoved(SharedTextureReceiver *) {}
+		virtual void senderRemoved(SharedTextureSender *) {}
 	};
 
 	ListenerList<Listener> listeners;

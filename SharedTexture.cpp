@@ -46,8 +46,8 @@ void SharedTextureSender::createImageDefinition()
 	{
 		//MessageManager::callAsync([&] {
 
-			image = Image(Image::ARGB, width, height, true, OpenGLImageType()); //create the openGL image
-			fbo = OpenGLImageType::getFrameBufferFrom(image);
+		image = Image(Image::ARGB, width, height, true, OpenGLImageType()); //create the openGL image
+		fbo = OpenGLImageType::getFrameBufferFrom(image);
 		//});
 	}
 
@@ -62,7 +62,7 @@ void SharedTextureSender::setupNativeSender(bool forceRecreation)
 		if (isInit && !forceRecreation) spoutSender->UpdateSender(sharingName.getCharPointer(), image.getWidth(), image.getHeight());
 		else
 		{
-			if(isInit) spoutSender->ReleaseSender();
+			if (isInit) spoutSender->ReleaseSender();
 			spoutSender->CreateSender(sharingName.getCharPointer(), image.getWidth(), image.getHeight());
 			isInit = true;
 		}
@@ -166,7 +166,6 @@ SharedTextureReceiver::SharedTextureReceiver(const String& _sharingName) :
 
 
 #if JUCE_WINDOWS
-	sharingName.copyToUTF8(sharingNameArr, 256);
 
 #elif JUCE_MAC
 
@@ -216,8 +215,10 @@ void SharedTextureReceiver::createReceiver()
 	if (!isInit)
 	{
 		receiver = GetSpout();
-		isInit = receiver->CreateReceiver(sharingNameArr, width, height, sharingName.isEmpty());
-
+		DBG("Create receive with sharing Name " << sharingName);
+		receiver->SetSenderName(sharingName.toStdString().c_str());
+		isInit = receiver->CreateReceiver((char*)sharingName.toStdString().c_str(), width, height, sharingName.isEmpty());
+		DBG("Is init ? " << (int)isInit << " : " << String(receiver->GetSenderName()));
 
 	}
 #elif JUCE_MAC
@@ -265,26 +266,27 @@ void SharedTextureReceiver::renderGL()
 	setConnected(connectionResult);
 	//if (!isConnected) return;
 
-	if (receiver->IsUpdated()) {
-		newWidth = receiver->GetSenderWidth();
-		newHeight = receiver->GetSenderHeight();
-	}
-
-	if (!image.isValid() || width != newWidth || height != newHeight) createImageDefinition();
-	if (!image.isValid()) return;
+	newWidth = receiver->GetSenderWidth();
+	newHeight = receiver->GetSenderHeight();
 
 #elif JUCE_MAC
 
 #endif
 
-	if (!image.isValid() || width != newWidth || height != newHeight) createImageDefinition();
+	if (!image.isValid() || width != newWidth || height != newHeight)
+	{
+		width = newWidth;
+		height = newHeight;
+		createImageDefinition();
+	}
+
 	if (!image.isValid()) return;
 
 
 	bool success = true;
 
 #if JUCE_WINDOWS
-	unsigned int receiveWidth = width, receiveHeight = height;
+	//unsigned int receiveWidth = width, receiveHeight = height;
 	success = receiver->ReceiveTexture(fbo->getTextureID(), juce::gl::GL_TEXTURE_2D, invertImage);
 #elif JUCE_MAC
 
@@ -305,8 +307,6 @@ void SharedTextureReceiver::renderGL()
 void SharedTextureReceiver::clearGL()
 {
 }
-
-
 
 
 juce_ImplementSingleton(SharedTextureManager)
