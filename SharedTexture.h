@@ -74,8 +74,8 @@ public:
 	bool isInit;
 	bool isConnected;
 
-	unsigned int width;
-	unsigned int height;
+	int width;
+	int height;
 	bool invertImage;
 
 	OpenGLContext context;

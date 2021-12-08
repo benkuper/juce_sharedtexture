@@ -219,7 +219,7 @@ void SharedTextureReceiver::createReceiver()
 		sprintf_s(s, sharingName.toStdString().c_str());
 		receiver->SetSenderName(s);
 		
-		//DBG("Set Sender Name : " << sharingName << " : " << receiver->GetSenderName());
+		DBG("Set Sender Name : " << sharingName << " : " << receiver->GetSenderName());
 		createImageDefinition();
 		isInit = true;
 	}
@@ -237,8 +237,13 @@ void SharedTextureReceiver::createImageDefinition()
 	if (!OpenGLContext::getCurrentContext()->isActive()) return;
 	if (receiver == nullptr) return;
 
-	width = jmax<int>(receiver->GetSenderWidth(), 1);
-	height = jmax<int>(receiver->GetSenderHeight(), 1);
+#if JUCE_WINDOWS
+	width = receiver->GetSenderWidth();
+	height = receiver->GetSenderHeight();
+#else
+	width = 0;
+	height = 0;
+#endif
 
 	image = Image(Image::ARGB, width, height, true, OpenGLImageType()); //create the openGL image
 	outImage = Image(Image::ARGB, width, height, true); //not gl to be able to manipulate
@@ -279,7 +284,7 @@ void SharedTextureReceiver::renderGL()
 #if JUCE_WINDOWS
 	//unsigned int receiveWidth = width, receiveHeight = height;
 	success = receiver->ReceiveTexture(fbo->getTextureID(), juce::gl::GL_TEXTURE_2D, invertImage);
-	//DBG("Get Sender Name [" << sharingName << "] : " << receiver->GetSenderName() << " ( " << (int)receiver->GetSenderWidth() << "x" << (int)receiver->GetSenderHeight() << ")");
+	DBG("Get Sender Name [" << sharingName << "] : " << receiver->GetSenderName() << " ( " << (int)receiver->GetSenderWidth() << "x" << (int)receiver->GetSenderHeight() << ")");
 
 	if(success)
 	{
