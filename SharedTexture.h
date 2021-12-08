@@ -86,6 +86,8 @@ public:
 	bool useCPUImage; //useful for manipulations like getPixelAt, but not optimized
 	Image outImage;
 
+	void setSharingName(const String& name);
+
 	void setConnected(bool value);
 
 	void setUseCPUImage(bool value);
@@ -124,9 +126,6 @@ public:
 
 	OwnedArray<SharedTextureSender> senders;
 	OwnedArray<SharedTextureReceiver> receivers;
-
-	HashMap<String, SharedTextureSender *> sendersMap;
-	HashMap<String, SharedTextureReceiver *> receiversMap;
 
 	SharedTextureSender * addSender(const String &name, int width, int height, bool enabled = true);
 	SharedTextureReceiver * addReceiver(const String &name = String());
