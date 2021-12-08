@@ -215,11 +215,13 @@ void SharedTextureReceiver::createReceiver()
 	if (!isInit)
 	{
 		receiver = GetSpout();
-		DBG("Create receive with sharing Name " << sharingName);
-		receiver->SetSenderName(sharingName.toStdString().c_str());
-		isInit = receiver->CreateReceiver((char*)sharingName.toStdString().c_str(), width, height, sharingName.isEmpty());
-		DBG("Is init ? " << (int)isInit << " : " << String(receiver->GetSenderName()));
-
+		char s[32];
+		sprintf_s(s, sharingName.toStdString().c_str());
+		receiver->SetSenderName(s);
+		
+		//DBG("Set Sender Name : " << sharingName << " : " << receiver->GetSenderName());
+		createImageDefinition();
+		isInit = true;
 	}
 #elif JUCE_MAC
 
@@ -231,11 +233,13 @@ void SharedTextureReceiver::createReceiver()
 
 void SharedTextureReceiver::createImageDefinition()
 {
-	if (width == 0 || height == 0) return;
 	if (OpenGLContext::getCurrentContext() == nullptr) return;
 	if (!OpenGLContext::getCurrentContext()->isActive()) return;
+	if (receiver == nullptr) return;
 
-	//if (fbo != nullptr) fbo->release();
+	width = jmax<int>(receiver->GetSenderWidth(), 1);
+	height = jmax<int>(receiver->GetSenderHeight(), 1);
+
 	image = Image(Image::ARGB, width, height, true, OpenGLImageType()); //create the openGL image
 	outImage = Image(Image::ARGB, width, height, true); //not gl to be able to manipulate
 	fbo = OpenGLImageType::getFrameBufferFrom(image);
@@ -266,28 +270,21 @@ void SharedTextureReceiver::renderGL()
 	setConnected(connectionResult);
 	//if (!isConnected) return;
 
-	newWidth = receiver->GetSenderWidth();
-	newHeight = receiver->GetSenderHeight();
-
 #elif JUCE_MAC
 
 #endif
-
-	if (!image.isValid() || width != newWidth || height != newHeight)
-	{
-		width = newWidth;
-		height = newHeight;
-		createImageDefinition();
-	}
-
-	if (!image.isValid()) return;
-
 
 	bool success = true;
 
 #if JUCE_WINDOWS
 	//unsigned int receiveWidth = width, receiveHeight = height;
 	success = receiver->ReceiveTexture(fbo->getTextureID(), juce::gl::GL_TEXTURE_2D, invertImage);
+	//DBG("Get Sender Name [" << sharingName << "] : " << receiver->GetSenderName() << " ( " << (int)receiver->GetSenderWidth() << "x" << (int)receiver->GetSenderHeight() << ")");
+
+	if(success)
+	{
+		if (receiver->IsUpdated()) createImageDefinition();
+	}
 #elif JUCE_MAC
 
 #endif
