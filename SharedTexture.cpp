@@ -157,11 +157,11 @@ SharedTextureReceiver::SharedTextureReceiver(const String& _sharingName) :
 	sharingName(_sharingName),
 	isInit(false),
 	isConnected(false),
-	invertImage(true),
-	fbo(nullptr),
-	useCPUImage(false),
 	width(0),
-	height(0)
+	height(0),
+    invertImage(true),
+    fbo(nullptr),
+    useCPUImage(false)
 {
 
 #if JUCE_WINDOWS
