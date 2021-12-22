@@ -127,6 +127,9 @@ public:
 	OwnedArray<SharedTextureSender> senders;
 	OwnedArray<SharedTextureReceiver> receivers;
 
+	Array<SharedTextureSender *> sendersToRemove;
+	Array<SharedTextureReceiver *> receiversToRemove;
+
 	SharedTextureSender * addSender(const String &name, int width, int height, bool enabled = true);
 	SharedTextureReceiver * addReceiver(const String &name = String());
 
