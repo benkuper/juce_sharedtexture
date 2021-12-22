@@ -316,8 +316,8 @@ SharedTextureManager::SharedTextureManager()
 
 SharedTextureManager::~SharedTextureManager()
 {
-	while (senders.size() > 0) removeSender(senders[0]);
-	while (receivers.size() > 0) removeReceiver(receivers[0]);
+	while (senders.size() > 0) removeSender(senders[0], true);
+	while (receivers.size() > 0) removeReceiver(receivers[0], true);
 }
 
 SharedTextureSender* SharedTextureManager::addSender(const String& name, int width, int height, bool enabled)
@@ -334,9 +334,9 @@ SharedTextureReceiver* SharedTextureManager::addReceiver(const String& name)
 	return r;
 }
 
-void SharedTextureManager::removeSender(SharedTextureSender* sender)
+void SharedTextureManager::removeSender(SharedTextureSender* sender, bool force)
 {
-	if (OpenGLContext::getCurrentContext() == nullptr || !OpenGLContext::getCurrentContext()->isActive())
+	if (!force && (OpenGLContext::getCurrentContext() == nullptr || !OpenGLContext::getCurrentContext()->isActive()))
 	{
 		sendersToRemove.add(sender);
 		return;
@@ -347,9 +347,9 @@ void SharedTextureManager::removeSender(SharedTextureSender* sender)
 	delete sender;
 }
 
-void SharedTextureManager::removeReceiver(SharedTextureReceiver* receiver)
+void SharedTextureManager::removeReceiver(SharedTextureReceiver* receiver, bool force)
 {
-	if (OpenGLContext::getCurrentContext() == nullptr || !OpenGLContext::getCurrentContext()->isActive())
+	if (!force && (OpenGLContext::getCurrentContext() == nullptr || !OpenGLContext::getCurrentContext()->isActive()))
 	{
 		receiversToRemove.add(receiver);
 		return;
@@ -386,6 +386,10 @@ void SharedTextureManager::clearGL()
 	for (auto& r : receiversToRemove) removeReceiver(r);
 	receiversToRemove.clear();
 
+
 	for (auto& s : senders) s->clearGL();
 	for (auto& r : receivers) r->clearGL();
+
+	while (senders.size() > 0) removeSender(senders[0]);
+	while (receivers.size() > 0) removeReceiver(receivers[0]);
 }

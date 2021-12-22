@@ -133,8 +133,8 @@ public:
 	SharedTextureSender * addSender(const String &name, int width, int height, bool enabled = true);
 	SharedTextureReceiver * addReceiver(const String &name = String());
 
-	void removeSender(SharedTextureSender * sender);
-	void removeReceiver(SharedTextureReceiver * receiver);
+	void removeSender(SharedTextureSender * sender, bool force = false);
+	void removeReceiver(SharedTextureReceiver * receiver, bool force = false);
 
 	virtual void initGL();
 	virtual void renderGL();
