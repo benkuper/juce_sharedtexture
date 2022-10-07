@@ -186,7 +186,7 @@ SharedTextureReceiver::~SharedTextureReceiver()
 
 void SharedTextureReceiver::setSharingName(const String& name)
 {
-	if (name == sharingName) return;
+	if (name == sharingName || receiver == nullptr) return;
 	sharingName = name;
 #if JUCE_WINDOWS
 	receiver->SetReceiverName(sharingName.toStdString().c_str());
