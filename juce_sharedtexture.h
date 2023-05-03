@@ -24,7 +24,6 @@
 
   dependencies:     juce_core, juce_opengl
   windowsLibs :		SpoutLibrary
-  EmbeddedOSXFrameworks: frameworks/Syphon.framework
 
  END_JUCE_MODULE_DECLARATION
 

@@ -1,6 +1,0 @@
-framework module Syphon {
-  umbrella header "Syphon.h"
-
-  export *
-  module * { export * }
-}
