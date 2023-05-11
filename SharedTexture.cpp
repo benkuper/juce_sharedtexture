@@ -365,6 +365,8 @@ void SharedTextureManager::initGL()
 {
 	for (auto& s : senders) s->initGL();
 	for (auto& r : receivers) r->initGL();
+
+	listeners.call(&Listener::GLInitialized);
 }
 
 void SharedTextureManager::renderGL()
