@@ -146,6 +146,7 @@ public:
 		virtual ~Listener() {}
 		virtual void receiverRemoved(SharedTextureReceiver *) {}
 		virtual void senderRemoved(SharedTextureSender *) {}
+		virtual void GLInitialized() {}
 	};
 
 	ListenerList<Listener> listeners;
