@@ -1,3 +1,4 @@
+//#include "JuceHeader.h"
 
 SharedTextureSender::SharedTextureSender(const String& name, int width, int height, bool enabled) :
 	isInit(false),
@@ -159,9 +160,9 @@ SharedTextureReceiver::SharedTextureReceiver(const String& _sharingName) :
 	isConnected(false),
 	width(0),
 	height(0),
-    invertImage(true),
-    fbo(nullptr),
-    useCPUImage(false)
+	invertImage(true),
+	fbo(nullptr),
+	useCPUImage(false)
 {
 
 #if JUCE_WINDOWS
@@ -182,6 +183,12 @@ SharedTextureReceiver::~SharedTextureReceiver()
 	}
 	receiver = nullptr;
 #endif
+
+	if (!useCPUImage)
+	{
+		if (fbo != nullptr) fbo->release();
+		delete fbo;
+	}
 }
 
 void SharedTextureReceiver::setSharingName(const String& name)
@@ -250,10 +257,21 @@ void SharedTextureReceiver::createImageDefinition()
 	height = jmax<int>(receiver->GetSenderHeight(), 1);
 #endif
 
+	if (useCPUImage)
+	{
+		image = Image(Image::ARGB, width, height, true, OpenGLImageType()); //create the openGL image
+		outImage = Image(Image::ARGB, width, height, true); //not gl to be able to manipulate
+		fbo = OpenGLImageType::getFrameBufferFrom(image);
+	}
+	else
+	{	
+		if(fbo != nullptr) fbo->release();
+		delete fbo;
 
-	image = Image(Image::ARGB, width, height, true, OpenGLImageType()); //create the openGL image
-	outImage = Image(Image::ARGB, width, height, true); //not gl to be able to manipulate
-	fbo = OpenGLImageType::getFrameBufferFrom(image);
+		fbo = new OpenGLFrameBuffer();
+		fbo->initialise(*OpenGLContext::getCurrentContext(), width, height);
+	}
+
 }
 
 void SharedTextureReceiver::initGL()
@@ -305,7 +323,7 @@ void SharedTextureReceiver::renderGL()
 
 void SharedTextureReceiver::clearGL()
 {
-	
+
 }
 
 
@@ -342,9 +360,9 @@ void SharedTextureManager::removeSender(SharedTextureSender* sender, bool force)
 		sendersToRemove.add(sender);
 		return;
 	}
-	
+
 	senders.removeObject(sender, false);
-	listeners.call(&Listener::senderRemoved, sender); 
+	listeners.call(&Listener::senderRemoved, sender);
 	delete sender;
 }
 

@@ -78,8 +78,6 @@ public:
 	int height;
 	bool invertImage;
 
-	OpenGLContext context;
-
 	Image image;
 	OpenGLFrameBuffer * fbo;
 
