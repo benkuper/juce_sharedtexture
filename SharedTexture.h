@@ -22,6 +22,7 @@ public:
 
 	Image image;
 	OpenGLFrameBuffer *fbo;
+	OpenGLFrameBuffer* externalFBO;
 
 	int width;
 	int height;
@@ -29,6 +30,8 @@ public:
 	bool canDraw();
 
 	void setSize(int w, int h);
+
+	void setExternalFBO(OpenGLFrameBuffer * newFBO);
 
 	void initGL();
 	void renderGL();

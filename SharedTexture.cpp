@@ -7,7 +7,8 @@ SharedTextureSender::SharedTextureSender(const String& name, int width, int heig
 	enabled(enabled),
 	fbo(nullptr),
 	width(width),
-	height(height)
+	height(height),
+	externalFBO(nullptr)
 {
 
 #if JUCE_WINDOWS
@@ -37,9 +38,17 @@ void SharedTextureSender::setSize(int w, int h)
 	height = h;
 }
 
+void SharedTextureSender::setExternalFBO(OpenGLFrameBuffer* newFBO)
+{
+	externalFBO = newFBO;
+	setSize(externalFBO->getWidth(), externalFBO->getHeight());
+}
+
 void SharedTextureSender::createImageDefinition()
 {
 	if (width == 0 || height == 0) return;
+
+	if (externalFBO != nullptr) return;
 
 	if (fbo != nullptr) fbo->release();
 
@@ -60,11 +69,11 @@ void SharedTextureSender::setupNativeSender(bool forceRecreation)
 	if (enabled)
 	{
 #if JUCE_WINDOWS
-		if (isInit && !forceRecreation) spoutSender->UpdateSender(sharingName.getCharPointer(), image.getWidth(), image.getHeight());
+		if (isInit && !forceRecreation) spoutSender->UpdateSender(sharingName.getCharPointer(), width, height);
 		else
 		{
 			if (isInit) spoutSender->ReleaseSender();
-			spoutSender->CreateSender(sharingName.getCharPointer(), image.getWidth(), image.getHeight());
+			spoutSender->CreateSender(sharingName.getCharPointer(), width, height);
 			isInit = true;
 		}
 #elif JUCE_MAC
@@ -96,28 +105,47 @@ void SharedTextureSender::renderGL()
 		if (isInit) setupNativeSender();
 		return;
 	}
+	else
+	{
+		if (!isInit) setupNativeSender();
+	}
+
+	if (!isInit) return;
 
 	if (sharingNameChanged)
 	{
 		setupNativeSender(true);
 	}
 
-	if (!isInit || !image.isValid() || image.getWidth() != width || image.getHeight() != height) createImageDefinition();
-	if (!image.isValid())
+
+	OpenGLFrameBuffer* targetFBO = fbo;
+
+	if (externalFBO != nullptr)
 	{
-		DBG("Problem creating image");
-		return;
+		if (externalFBO->getWidth() != width || externalFBO->getHeight() != height) setSize(externalFBO->getWidth(), externalFBO->getHeight());
+		targetFBO = externalFBO;
+	}
+	else
+	{
+		if (!isInit || !image.isValid() || image.getWidth() != width || image.getHeight() != height) createImageDefinition();
+		if (!image.isValid())
+		{
+			DBG("Problem creating image");
+			return;
+		}
+
+		juce::Rectangle<int> r = image.getBounds();
+		image.clear(r);
+		Graphics g(image);
+		g.beginTransparencyLayer(1);
+		sharedTextureListeners.call(&SharedTextureListener::drawSharedTexture, g, r);
+		g.endTransparencyLayer();
 	}
 
-	juce::Rectangle<int> r = image.getBounds();
-	image.clear(r);
-	Graphics g(image);
-	g.beginTransparencyLayer(1);
-	sharedTextureListeners.call(&SharedTextureListener::drawSharedTexture, g, r);
-	g.endTransparencyLayer();
+	if (targetFBO == nullptr) return;
 
 #if JUCE_WINDOWS
-	spoutSender->SendTexture(fbo->getTextureID(), juce::gl::GL_TEXTURE_2D, image.getWidth(), image.getHeight());
+	spoutSender->SendTexture(targetFBO->getTextureID(), juce::gl::GL_TEXTURE_2D, width, height);
 #elif JUCE_MAC
 
 #endif
@@ -264,8 +292,8 @@ void SharedTextureReceiver::createImageDefinition()
 		fbo = OpenGLImageType::getFrameBufferFrom(image);
 	}
 	else
-	{	
-		if(fbo != nullptr) fbo->release();
+	{
+		if (fbo != nullptr) fbo->release();
 		delete fbo;
 
 		fbo = new OpenGLFrameBuffer();
@@ -319,7 +347,7 @@ void SharedTextureReceiver::renderGL()
 	}
 
 	listeners.call(&Listener::textureUpdated, this);
-}
+	}
 
 void SharedTextureReceiver::clearGL()
 {
@@ -355,6 +383,8 @@ SharedTextureReceiver* SharedTextureManager::addReceiver(const String& name)
 
 void SharedTextureManager::removeSender(SharedTextureSender* sender, bool force)
 {
+	if (sender == nullptr) return;
+
 	if (!force && (OpenGLContext::getCurrentContext() == nullptr || !OpenGLContext::getCurrentContext()->isActive()))
 	{
 		sendersToRemove.add(sender);
@@ -368,6 +398,7 @@ void SharedTextureManager::removeSender(SharedTextureSender* sender, bool force)
 
 void SharedTextureManager::removeReceiver(SharedTextureReceiver* receiver, bool force)
 {
+	if (receiver == nullptr) return;
 	if (!force && (OpenGLContext::getCurrentContext() == nullptr || !OpenGLContext::getCurrentContext()->isActive()))
 	{
 		receiversToRemove.add(receiver);
