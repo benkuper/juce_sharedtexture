@@ -190,7 +190,7 @@ SharedTextureReceiver::SharedTextureReceiver(const String& _sharingName) :
 	height(0),
 	invertImage(true),
 	fbo(nullptr),
-	useCPUImage(false)
+	useCPUImage(SHAREDTEXTURE_USE_CPU_IMAGE)
 {
 
 #if JUCE_WINDOWS
@@ -318,6 +318,7 @@ void SharedTextureReceiver::renderGL()
 	}
 
 
+	
 	bool success = true;
 
 #if JUCE_WINDOWS
@@ -336,6 +337,7 @@ void SharedTextureReceiver::renderGL()
 #endif
 
 	setConnected(success);
+
 
 	if (success && useCPUImage)
 	{
