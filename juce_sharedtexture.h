@@ -54,12 +54,17 @@
 #include "juce_core/juce_core.h"
 #include "juce_gui_basics/juce_gui_basics.h"
 #include "juce_opengl/juce_opengl.h"
-using namespace juce;
-using namespace juce::gl;
+
 
 #if JUCE_WINDOWS
 #include "SpoutLibrary.h"
+#elif JUCE_MAC
+#include "SyphonNSObject.hpp"
 #endif
+
+using namespace juce;
+using namespace juce::gl;
+
 
 #include "SharedTexture.h"
 

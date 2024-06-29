@@ -8,9 +8,9 @@ public:
 	~SharedTextureSender();
 
 #if JUCE_WINDOWS
-	SPOUTLIBRARY * spoutSender;
+	SPOUTLIBRARY * sender;
 #elif JUCE_MAC
-
+    SyphonNSObject sender;
 #endif
 
 	bool isInit;
@@ -69,6 +69,7 @@ public:
 #if JUCE_WINDOWS
 	SPOUTLIBRARY * receiver;
 #elif JUCE_MAC
+    SyphonNSObject receiver;
 
 #endif
 

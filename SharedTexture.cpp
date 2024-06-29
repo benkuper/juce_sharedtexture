@@ -12,7 +12,7 @@ SharedTextureSender::SharedTextureSender(const String& name, int width, int heig
 {
     
 #if JUCE_WINDOWS
-    spoutSender = GetSpout();
+    sender = GetSpout();
 #elif JUCE_MAC
     
 #endif
@@ -21,9 +21,9 @@ SharedTextureSender::SharedTextureSender(const String& name, int width, int heig
 SharedTextureSender::~SharedTextureSender()
 {
 #if JUCE_WINDOWS
-    spoutSender->ReleaseSender();
-    spoutSender->Release();
-    spoutSender = nullptr;
+    sender->ReleaseSender();
+    sender->Release();
+    sender = nullptr;
 #endif
 }
 
@@ -69,11 +69,11 @@ void SharedTextureSender::setupNativeSender(bool forceRecreation)
     if (enabled)
     {
 #if JUCE_WINDOWS
-        if (isInit && !forceRecreation) spoutSender->UpdateSender(sharingName.getCharPointer(), width, height);
+        if (isInit && !forceRecreation) sender->UpdateSender(sharingName.getCharPointer(), width, height);
         else
         {
-            if (isInit) spoutSender->ReleaseSender();
-            spoutSender->CreateSender(sharingName.getCharPointer(), width, height);
+            if (isInit) sender->ReleaseSender();
+            sender->CreateSender(sharingName.getCharPointer(), width, height);
             isInit = true;
         }
 #elif JUCE_MAC
@@ -83,7 +83,7 @@ void SharedTextureSender::setupNativeSender(bool forceRecreation)
     else
     {
 #if JUCE_WINDOWS
-        if (isInit) spoutSender->ReleaseSender();
+        if (isInit) sender->ReleaseSender();
 #elif JUCE_MAC
         
 #endif
@@ -145,7 +145,7 @@ void SharedTextureSender::renderGL()
     if (targetFBO == nullptr) return;
     
 #if JUCE_WINDOWS
-    spoutSender->SendTexture(targetFBO->getTextureID(), juce::gl::GL_TEXTURE_2D, width, height);
+    sender->SendTexture(targetFBO->getTextureID(), juce::gl::GL_TEXTURE_2D, width, height);
 #elif JUCE_MAC
     
 #endif
@@ -156,7 +156,7 @@ void SharedTextureSender::clearGL()
     if (fbo != nullptr) fbo->release();
     
 #if JUCE_WINDOWS
-    spoutSender->ReleaseSender();
+    sender->ReleaseSender();
 #elif JUCE_MAC
 #endif
     
