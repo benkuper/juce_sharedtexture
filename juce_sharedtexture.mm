@@ -15,9 +15,9 @@
  #error "Incorrect use of JUCE cpp file"
 #endif
 
-#include "SyphonNSObject.mm"
-
 #include "juce_sharedtexture.h"
+#import <Syphon/Syphon.h>
+
 #include "SharedTexture.cpp"
 
 
