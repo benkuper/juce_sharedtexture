@@ -16,6 +16,7 @@
 #endif
 
 #include "juce_sharedtexture.h"
+#include <AppKit/NSOpenGL.h>
 #import <Syphon/Syphon.h>
 
 #include "SharedTexture.cpp"

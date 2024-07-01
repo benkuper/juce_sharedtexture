@@ -1,5 +1,23 @@
 //#include "JuceHeader.h"
 
+using namespace juce::gl;
+
+#define Init2DViewport(w, h) glViewport(0, 0, w, h); \
+Init2DMatrix(w, h);
+
+#define Init2DMatrix(w, h) glMatrixMode(GL_PROJECTION);\
+glLoadIdentity(); \
+glOrtho(0, w, 0, h, 0, 1); \
+glMatrixMode(GL_MODELVIEW); \
+glLoadIdentity();
+
+#define Draw2DTexRect(x, y, w, h) glBegin(GL_QUADS); \
+glTexCoord2f(0, 0); glVertex2f(x, y); \
+glTexCoord2f(1, 0); glVertex2f(x + w, y); \
+glTexCoord2f(1, 1); glVertex2f(x + w, y + h); \
+glTexCoord2f(0, 1); glVertex2f(x, y + h); \
+glEnd();
+
 SharedTextureSender::SharedTextureSender(const juce::String& name, int width, int height, bool enabled) :
     isInit(false),
     sharingName(name),
@@ -255,7 +273,7 @@ void SharedTextureReceiver::setUseCPUImage(bool value)
 
 juce::Image& SharedTextureReceiver::getImage()
 {
-    return image;
+    return useCPUImage?outImage:image;
 }
 
 bool SharedTextureReceiver::canDraw()
@@ -305,7 +323,10 @@ void SharedTextureReceiver::createReceiver()
 
                     NSLog(@"Target server description: %@", targetServer);
 
-                    receiver = [[SyphonClient alloc] initWithServerDescription:targetServer context:CGLGetCurrentContext() options:nil newFrameHandler:nil];
+            
+                    NSOpenGLContext* nsgl = (NSOpenGLContext*)juce::OpenGLContext::getCurrentContext()->getRawContext();
+                    receiver = [[SyphonOpenGLClient alloc] initWithServerDescription:targetServer context:nsgl.CGLContextObj options:nil newFrameHandler:nil];
+                        
 
                     if (receiver == nil)
                     {
@@ -344,34 +365,6 @@ void SharedTextureReceiver::createImageDefinition()
         NSLog(@"Receiver is null in createImageDefinition");
         return;
     }
-    
-//    NSSize textureSize = NSZeroSize;
-    
-//    @try {
-//        if ([receiver isValid])
-//        {
-//            textureSize = [receiver textureSize];
-//            NSLog(@"Received texture size: %@", NSStringFromSize(textureSize));
-//        }
-//        else
-//        {
-//            NSLog(@"Receiver is not valid");
-//            return;
-//        }
-//    }
-//    @catch (NSException *exception) {
-//        NSLog(@"Exception when getting texture size: %@", exception.reason);
-//        return;
-//    }
-//    
-//    if (NSEqualSizes(textureSize, NSZeroSize))
-//    {
-//        NSLog(@"Received zero texture size");
-//        return;
-//    }
-//    
-//    width = juce::jmax<int>(textureSize.width, 1);
-//    height = juce::jmax<int>(textureSize.height, 1);
 #endif
     
     if(width == 0 || height == 0) return;
@@ -413,7 +406,7 @@ void SharedTextureReceiver::renderGL()
     bool success = false;
     
 #if JUCE_WINDOWS
-    //unsigned int receiveWidth = width, receiveHeight = height;
+    unsigned int receiveWidth = width, receiveHeight = height;
     
     success = receiver->ReceiveTexture(fbo->getTextureID(), juce::gl::GL_TEXTURE_2D, invertImage);
     //DBG("Receiver Texture : " << (int)success << " / Get Sender Name [" << sharingName << "] : " << receiver->GetSenderName() << " ( " << (int)receiver->GetSenderWidth() << "x" << (int)receiver->GetSenderHeight() << ")");
@@ -426,7 +419,7 @@ void SharedTextureReceiver::renderGL()
 #elif JUCE_MAC
     if (receiver && [receiver hasNewFrame])
     {
-        [receiver invalidateFrame];
+       
             SyphonOpenGLImage* syphonImage = [receiver newFrameImage];
             if (syphonImage)
             {
@@ -441,34 +434,23 @@ void SharedTextureReceiver::renderGL()
                     createImageDefinition();
                 }
                 
-                // Bind the received texture to our FBO
-                juce::gl::glBindFramebuffer(juce::gl::GL_FRAMEBUFFER, fbo->getFrameBufferID());
-                juce::gl::glFramebufferTexture2D(juce::gl::GL_FRAMEBUFFER, juce::gl::GL_COLOR_ATTACHMENT0, juce::gl::GL_TEXTURE_2D, textureName, 0);
+                
+                fbo->makeCurrentAndClear();
+                
+                Init2DViewport(width, height)
+                
+                glEnable(GL_TEXTURE_RECTANGLE_ARB);
+                glDisable(GL_DEPTH_TEST);
+                glColor4f(1,1,1,1);
+                
+                glBindTexture(GL_TEXTURE_RECTANGLE_ARB, textureName);
+                
+                Draw2DTexRect(0, 0, width, height);
+                glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
+                
+                fbo->releaseAsRenderingTarget();
                 
                 success = true;
-                
-                // If using CPU image, copy the texture data
-                if (useCPUImage)
-                {
-                    //outImage.clear(outImage.getBounds());
-                    //                juce::OpenGLFrameBuffer::copyTexture(juce::gl::GL_TEXTURE_2D, textureName,
-                    //                                                     juce::gl::GL_RGBA, GL_UNSIGNED_INT_8_8_8_8_REV,
-                    //                                                     0, 0, width, height,
-                    //                                                     outImage, invertImage);
-                    
-                   
-//                    outImage.clear(outImage.getBounds());
-//                    juce::Graphics g(outImage);
-//                    g.drawImage(image, outImage.getBounds().toFloat());
-                }
-                
-                // Clean up
-//                juce::gl::glFramebufferTexture2D(juce::gl::GL_FRAMEBUFFER, juce::gl::GL_COLOR_ATTACHMENT0, juce::gl::GL_TEXTURE_2D, 0, 0);
-                juce::gl::glBindFramebuffer(juce::gl::GL_FRAMEBUFFER, 0);
-//                
-                if (!outImage.isValid()) outImage = juce::Image(juce::Image::ARGB, width, height, true); //not gl to be able to manipulate
-                
-                //outImage = image.createCopy();
                 
                 [syphonImage release];
             }
@@ -481,11 +463,9 @@ void SharedTextureReceiver::renderGL()
     if (success && useCPUImage)
     {
         if (!outImage.isValid()) outImage = juce::Image(juce::Image::ARGB, width, height, true); //not gl to be able to manipulate
-        
-         outImage = image;
-//        outImage.clear(outImage.getBounds());
-//        juce::Graphics g(outImage);
-//        g.drawImage(image, outImage.getBounds().toFloat());
+        outImage.clear(outImage.getBounds());
+        juce::Graphics g(outImage);
+        g.drawImage(image, outImage.getBounds().toFloat());
     }
     
     listeners.call(&Listener::textureUpdated, this);
