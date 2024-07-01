@@ -1,28 +1,33 @@
 #pragma once
 
+#ifdef __OBJC__
+@class SyphonOpenGLClient;
+#else
+class SyphonOpenGLClient;
+#endif
 
 class SharedTextureSender
 {
 public:
-	SharedTextureSender(const String &name, int width, int height, bool enabled = true);
+	SharedTextureSender(const juce::String &name, int width, int height, bool enabled = true);
 	~SharedTextureSender();
 
 #if JUCE_WINDOWS
 	SPOUTLIBRARY * sender;
 #elif JUCE_MAC
-    SyphonNSObject sender;
+//    SyphonOpenGLServer* sender;
 #endif
 
 	bool isInit;
 
-	String sharingName;
+	juce::String sharingName;
 	bool sharingNameChanged;
 	bool enabled;
 
 
-	Image image;
-	OpenGLFrameBuffer *fbo;
-	OpenGLFrameBuffer* externalFBO;
+	juce::Image image;
+	juce::OpenGLFrameBuffer *fbo;
+	juce::OpenGLFrameBuffer* externalFBO;
 
 	int width;
 	int height;
@@ -31,13 +36,13 @@ public:
 
 	void setSize(int w, int h);
 
-	void setExternalFBO(OpenGLFrameBuffer * newFBO);
+	void setExternalFBO(juce::OpenGLFrameBuffer * newFBO);
 
 	void initGL();
 	void renderGL();
 	void clearGL();
 
-	void setSharingName(String value);
+	void setSharingName(juce::String value);
 	void setEnabled(bool value);
 
 	void createImageDefinition();
@@ -47,10 +52,10 @@ public:
 	{
 	public:
 		virtual ~SharedTextureListener() {}
-		virtual void drawSharedTexture(Graphics &g, juce::Rectangle<int> r) = 0;
+		virtual void drawSharedTexture(juce::Graphics &g, juce::Rectangle<int> r) = 0;
 	};
 
-	ListenerList<SharedTextureListener> sharedTextureListeners;
+	juce::ListenerList<SharedTextureListener> sharedTextureListeners;
 	void addSharedTextureListener(SharedTextureListener* newListener) { sharedTextureListeners.add(newListener); }
 	void removeSharedTextureListener(SharedTextureListener* listener) { sharedTextureListeners.remove(listener); }
 };
@@ -63,18 +68,18 @@ class SpoutReceiver;
 class SharedTextureReceiver
 {
 public:
-	SharedTextureReceiver(const String &sharingName = String());
+	SharedTextureReceiver(const juce::String &sharingName = juce::String(), const juce::String &sharingAppName = juce::String());
 	~SharedTextureReceiver();
 
 #if JUCE_WINDOWS
 	SPOUTLIBRARY * receiver;
 #elif JUCE_MAC
-    SyphonNSObject receiver;
-
+    SyphonOpenGLClient* receiver;
 #endif
 
 	bool enabled;
-	String sharingName;
+	juce::String sharingName;
+    juce::String sharingAppName; //for syphon
 	bool isInit;
 	bool isConnected;
 
@@ -82,18 +87,18 @@ public:
 	int height;
 	bool invertImage;
 
-	Image image;
-	OpenGLFrameBuffer * fbo;
+	juce::Image image;
+	juce::OpenGLFrameBuffer * fbo;
 
 	bool useCPUImage; //useful for manipulations like getPixelAt, but not optimized
-	Image outImage;
+	juce::Image outImage;
 
-	void setSharingName(const String& name);
+	void setSharingName(const juce::String& name, const juce::String& appName = "");
 
 	void setConnected(bool value);
 
 	void setUseCPUImage(bool value);
-	Image & getImage(); 
+	juce::Image & getImage();
 	
 	bool canDraw();
 	void createReceiver();
@@ -112,7 +117,7 @@ public:
 		virtual void connectionChanged(SharedTextureReceiver *) {}
 	};
 
-	ListenerList<Listener> listeners;
+	juce::ListenerList<Listener> listeners;
 	void addListener(Listener* newListener) { listeners.add(newListener); }
 	void removeListener(Listener* listener) { listeners.remove(listener); }
 
@@ -126,14 +131,16 @@ public:
 	SharedTextureManager();
 	virtual ~SharedTextureManager();
 
-	OwnedArray<SharedTextureSender> senders;
-	OwnedArray<SharedTextureReceiver> receivers;
+	juce::OwnedArray<SharedTextureSender> senders;
+	juce::OwnedArray<SharedTextureReceiver> receivers;
 
-	Array<SharedTextureSender *> sendersToRemove;
-	Array<SharedTextureReceiver *> receiversToRemove;
+	juce::Array<SharedTextureSender *> sendersToRemove;
+	juce::Array<SharedTextureReceiver *> receiversToRemove;
 
-	SharedTextureSender * addSender(const String &name, int width, int height, bool enabled = true);
-	SharedTextureReceiver * addReceiver(const String &name = String());
+	SharedTextureSender * addSender(const juce::String &name, int width, int height, bool enabled = true);
+	SharedTextureReceiver * addReceiver(const juce::String &name = juce::String(), const juce::String &appName = juce::String());
+    
+    
 
 	void removeSender(SharedTextureSender * sender, bool force = false);
 	void removeReceiver(SharedTextureReceiver * receiver, bool force = false);
@@ -141,6 +148,8 @@ public:
 	virtual void initGL();
 	virtual void renderGL();
 	virtual void clearGL();
+    
+    juce::StringArray getAvailableSenders();
 
 	class  Listener
 	{
@@ -151,7 +160,7 @@ public:
 		virtual void GLInitialized() {}
 	};
 
-	ListenerList<Listener> listeners;
+	juce::ListenerList<Listener> listeners;
 	void addListener(Listener* newListener) { listeners.add(newListener); }
 	void removeListener(Listener* listener) { listeners.remove(listener); }
 

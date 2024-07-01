@@ -1,6 +1,24 @@
 //#include "JuceHeader.h"
 
-SharedTextureSender::SharedTextureSender(const String& name, int width, int height, bool enabled) :
+using namespace juce::gl;
+
+#define Init2DViewport(w, h) glViewport(0, 0, w, h); \
+Init2DMatrix(w, h);
+
+#define Init2DMatrix(w, h) glMatrixMode(GL_PROJECTION);\
+glLoadIdentity(); \
+glOrtho(0, w, 0, h, 0, 1); \
+glMatrixMode(GL_MODELVIEW); \
+glLoadIdentity();
+
+#define Draw2DTexRect(x, y, w, h) glBegin(GL_QUADS); \
+glTexCoord2f(0, 0); glVertex2f(x, y); \
+glTexCoord2f(1, 0); glVertex2f(x + w, y); \
+glTexCoord2f(1, 1); glVertex2f(x + w, y + h); \
+glTexCoord2f(0, 1); glVertex2f(x, y + h); \
+glEnd();
+
+SharedTextureSender::SharedTextureSender(const juce::String& name, int width, int height, bool enabled) :
     isInit(false),
     sharingName(name),
     sharingNameChanged(false),
@@ -29,7 +47,7 @@ SharedTextureSender::~SharedTextureSender()
 
 bool SharedTextureSender::canDraw()
 {
-    return OpenGLContext::getCurrentContext() != nullptr && image.isValid();
+    return juce::OpenGLContext::getCurrentContext() != nullptr && image.isValid();
 }
 
 void SharedTextureSender::setSize(int w, int h)
@@ -38,7 +56,7 @@ void SharedTextureSender::setSize(int w, int h)
     height = h;
 }
 
-void SharedTextureSender::setExternalFBO(OpenGLFrameBuffer* newFBO)
+void SharedTextureSender::setExternalFBO(juce::OpenGLFrameBuffer* newFBO)
 {
     externalFBO = newFBO;
     setSize(externalFBO->getWidth(), externalFBO->getHeight());
@@ -56,8 +74,8 @@ void SharedTextureSender::createImageDefinition()
     {
         //MessageManager::callAsync([&] {
         
-        image = Image(Image::ARGB, width, height, true, OpenGLImageType()); //create the openGL image
-        fbo = OpenGLImageType::getFrameBufferFrom(image);
+        image = juce::Image(juce::Image::ARGB, width, height, true, juce::OpenGLImageType()); //create the openGL image
+        fbo = juce::OpenGLImageType::getFrameBufferFrom(image);
         //});
     }
     
@@ -118,7 +136,7 @@ void SharedTextureSender::renderGL()
     }
     
     
-    OpenGLFrameBuffer* targetFBO = fbo;
+    juce::OpenGLFrameBuffer* targetFBO = fbo;
     
     if (externalFBO != nullptr)
     {
@@ -136,7 +154,7 @@ void SharedTextureSender::renderGL()
         
         juce::Rectangle<int> r = image.getBounds();
         image.clear(r);
-        Graphics g(image);
+        juce::Graphics g(image);
         g.beginTransparencyLayer(1);
         sharedTextureListeners.call(&SharedTextureListener::drawSharedTexture, g, r);
         g.endTransparencyLayer();
@@ -163,7 +181,7 @@ void SharedTextureSender::clearGL()
     isInit = false;
 }
 
-void SharedTextureSender::setSharingName(String value)
+void SharedTextureSender::setSharingName(juce::String value)
 {
     if (sharingName == value) return;
     sharingName = value;
@@ -178,12 +196,13 @@ void SharedTextureSender::setEnabled(bool value)
 
 //REC
 
-SharedTextureReceiver::SharedTextureReceiver(const String& _sharingName) :
+SharedTextureReceiver::SharedTextureReceiver(const juce::String& _sharingName, const juce::String& _sharingAppName) :
 #if JUCE_WINDOWS
 receiver(nullptr),
 #endif
 enabled(true),
 sharingName(_sharingName),
+sharingAppName(_sharingAppName),
 isInit(false),
 isConnected(false),
 width(0),
@@ -196,7 +215,6 @@ useCPUImage(SHAREDTEXTURE_USE_CPU_IMAGE)
 #if JUCE_WINDOWS
     
 #elif JUCE_MAC
-    
 #endif
     
 }
@@ -210,6 +228,9 @@ SharedTextureReceiver::~SharedTextureReceiver()
         receiver->Release();
     }
     receiver = nullptr;
+#elif JUCE_MAC
+    [receiver stop];
+    [receiver release];
 #endif
     
     if (!useCPUImage)
@@ -219,13 +240,20 @@ SharedTextureReceiver::~SharedTextureReceiver()
     }
 }
 
-void SharedTextureReceiver::setSharingName(const String& name)
+void SharedTextureReceiver::setSharingName(const juce::String& name, const juce::String& appName)
 {
-    if (name == sharingName) return;
+    if (name == sharingName && appName == sharingAppName) return;
     sharingName = name;
+    sharingAppName = appName;
+    
 #if JUCE_WINDOWS
     if (receiver == nullptr) return;
     receiver->SetReceiverName(sharingName.toStdString().c_str());
+#elif JUCE_MAC
+    if (receiver)
+    {
+        [receiver setServerName:sharingName.toCFString() appName:sharingAppName.toCFString()];
+    }
 #endif
 }
 
@@ -240,17 +268,17 @@ void SharedTextureReceiver::setUseCPUImage(bool value)
 {
     if (useCPUImage == value) return;
     useCPUImage = value;
-    if (!useCPUImage) outImage = Image();
+    if (!useCPUImage) outImage = juce::Image();
 }
 
-Image& SharedTextureReceiver::getImage()
+juce::Image& SharedTextureReceiver::getImage()
 {
-    return useCPUImage ? outImage : image;
+    return useCPUImage?outImage:image;
 }
 
 bool SharedTextureReceiver::canDraw()
 {
-    return getImage().isValid() && OpenGLContext::getCurrentContext() != nullptr;
+    return getImage().isValid() && juce::OpenGLContext::getCurrentContext() != nullptr;
 }
 
 void SharedTextureReceiver::createReceiver()
@@ -266,6 +294,54 @@ void SharedTextureReceiver::createReceiver()
         isInit = true;
     }
 #elif JUCE_MAC
+    if (!isInit)
+        @try {
+                    SyphonServerDirectory* directory = [SyphonServerDirectory sharedDirectory];
+                    NSArray* servers = [directory servers];
+                    
+                    NSLog(@"Available Syphon servers: %@", servers);
+
+                    NSDictionary* targetServer = nil;
+                    for (NSDictionary* serverInfo in servers)
+                    {
+                        NSString* serverName = [serverInfo objectForKey:SyphonServerDescriptionNameKey];
+                        NSString* appName = [serverInfo objectForKey:SyphonServerDescriptionAppNameKey];
+                        
+                        if ([serverName isEqualToString:(NSString*)sharingName.toCFString()] &&
+                            [appName isEqualToString:(NSString*)sharingAppName.toCFString()])
+                        {
+                            targetServer = serverInfo;
+                            break;
+                        }
+                    }
+
+                    if (targetServer == nil)
+                    {
+                        NSLog(@"Could not find the specified Syphon server");
+                        return;
+                    }
+
+                    NSLog(@"Target server description: %@", targetServer);
+
+            
+                    NSOpenGLContext* nsgl = (NSOpenGLContext*)juce::OpenGLContext::getCurrentContext()->getRawContext();
+                    receiver = [[SyphonOpenGLClient alloc] initWithServerDescription:targetServer context:nsgl.CGLContextObj options:nil newFrameHandler:nil];
+                        
+
+                    if (receiver == nil)
+                    {
+                        NSLog(@"Failed to create SyphonClient");
+                        return;
+                    }
+
+                    NSLog(@"SyphonClient created successfully");
+                    
+                    createImageDefinition();
+                    isInit = true;
+                }
+                @catch (NSException *exception) {
+                    NSLog(@"Exception in createReceiver: %@", exception.reason);
+                }
     
 #endif
     
@@ -275,29 +351,37 @@ void SharedTextureReceiver::createReceiver()
 
 void SharedTextureReceiver::createImageDefinition()
 {
-    if (OpenGLContext::getCurrentContext() == nullptr) return;
-    if (!OpenGLContext::getCurrentContext()->isActive()) return;
+    if (juce::OpenGLContext::getCurrentContext() == nullptr) return;
+    if (!juce::OpenGLContext::getCurrentContext()->isActive()) return;
     
 #if JUCE_WINDOWS
     if (receiver == nullptr) return;
     
     width = jmax<int>(receiver->GetSenderWidth(), 1);
     height = jmax<int>(receiver->GetSenderHeight(), 1);
+#elif JUCE_MAC
+    if (receiver == nullptr)
+    {
+        NSLog(@"Receiver is null in createImageDefinition");
+        return;
+    }
 #endif
+    
+    if(width == 0 || height == 0) return;
     
     if (useCPUImage)
     {
-        image = Image(Image::ARGB, width, height, true, OpenGLImageType()); //create the openGL image
-        outImage = Image(Image::ARGB, width, height, true); //not gl to be able to manipulate
-        fbo = OpenGLImageType::getFrameBufferFrom(image);
+        image = juce::Image(juce::Image::ARGB, width, height, true, juce::OpenGLImageType()); //create the openGL image
+        outImage = juce::Image(juce::Image::ARGB, width, height, true); //not gl to be able to manipulate
+        fbo = juce::OpenGLImageType::getFrameBufferFrom(image);
     }
     else
     {
         if (fbo != nullptr) fbo->release();
         delete fbo;
         
-        fbo = new OpenGLFrameBuffer();
-        fbo->initialise(*OpenGLContext::getCurrentContext(), width, height);
+        fbo = new juce::OpenGLFrameBuffer();
+        fbo->initialise(*juce::OpenGLContext::getCurrentContext(), width, height);
     }
     
 }
@@ -319,10 +403,10 @@ void SharedTextureReceiver::renderGL()
     
     
     
-    bool success = true;
+    bool success = false;
     
 #if JUCE_WINDOWS
-    //unsigned int receiveWidth = width, receiveHeight = height;
+    unsigned int receiveWidth = width, receiveHeight = height;
     
     success = receiver->ReceiveTexture(fbo->getTextureID(), juce::gl::GL_TEXTURE_2D, invertImage);
     //DBG("Receiver Texture : " << (int)success << " / Get Sender Name [" << sharingName << "] : " << receiver->GetSenderName() << " ( " << (int)receiver->GetSenderWidth() << "x" << (int)receiver->GetSenderHeight() << ")");
@@ -333,7 +417,44 @@ void SharedTextureReceiver::renderGL()
     }
     
 #elif JUCE_MAC
-    
+    if (receiver && [receiver hasNewFrame])
+    {
+       
+            SyphonOpenGLImage* syphonImage = [receiver newFrameImage];
+            if (syphonImage)
+            {
+                GLuint textureName = syphonImage.textureName;
+                NSSize textureSize = syphonImage.textureSize;
+                
+                // Update our texture size if it has changed
+                if (width != textureSize.width || height != textureSize.height)
+                {
+                    width = textureSize.width;
+                    height = textureSize.height;
+                    createImageDefinition();
+                }
+                
+                
+                fbo->makeCurrentAndClear();
+                
+                Init2DViewport(width, height)
+                
+                glEnable(GL_TEXTURE_RECTANGLE_ARB);
+                glDisable(GL_DEPTH_TEST);
+                glColor4f(1,1,1,1);
+                
+                glBindTexture(GL_TEXTURE_RECTANGLE_ARB, textureName);
+                
+                Draw2DTexRect(0, 0, width, height);
+                glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
+                
+                fbo->releaseAsRenderingTarget();
+                
+                success = true;
+                
+                [syphonImage release];
+            }
+    }
 #endif
     
     setConnected(success);
@@ -341,10 +462,9 @@ void SharedTextureReceiver::renderGL()
     
     if (success && useCPUImage)
     {
-        if (!outImage.isValid()) outImage = Image(Image::ARGB, width, height, true); //not gl to be able to manipulate
-        
+        if (!outImage.isValid()) outImage = juce::Image(juce::Image::ARGB, width, height, true); //not gl to be able to manipulate
         outImage.clear(outImage.getBounds());
-        Graphics g(outImage);
+        juce::Graphics g(outImage);
         g.drawImage(image, outImage.getBounds().toFloat());
     }
     
@@ -353,7 +473,14 @@ void SharedTextureReceiver::renderGL()
 
 void SharedTextureReceiver::clearGL()
 {
-    
+    #if JUCE_MAC
+    if (receiver)
+    {
+        [receiver stop];
+        [receiver release];
+        receiver = nullptr;
+    }
+    #endif
 }
 
 
@@ -369,16 +496,16 @@ SharedTextureManager::~SharedTextureManager()
     while (receivers.size() > 0) removeReceiver(receivers[0], true);
 }
 
-SharedTextureSender* SharedTextureManager::addSender(const String& name, int width, int height, bool enabled)
+SharedTextureSender* SharedTextureManager::addSender(const juce::String& name, int width, int height, bool enabled)
 {
     SharedTextureSender* s = new SharedTextureSender(name, width, height, enabled);
     senders.add(s);
     return s;
 }
 
-SharedTextureReceiver* SharedTextureManager::addReceiver(const String& name)
+SharedTextureReceiver* SharedTextureManager::addReceiver(const juce::String& name, const juce::String& appName)
 {
-    SharedTextureReceiver* r = new SharedTextureReceiver(name);
+    SharedTextureReceiver* r = new SharedTextureReceiver(name, appName);
     receivers.add(r);
     return r;
 }
@@ -387,7 +514,7 @@ void SharedTextureManager::removeSender(SharedTextureSender* sender, bool force)
 {
     if (sender == nullptr) return;
     
-    if (!force && (OpenGLContext::getCurrentContext() == nullptr || !OpenGLContext::getCurrentContext()->isActive()))
+    if (!force && (juce::OpenGLContext::getCurrentContext() == nullptr || !juce::OpenGLContext::getCurrentContext()->isActive()))
     {
         sendersToRemove.add(sender);
         return;
@@ -401,7 +528,7 @@ void SharedTextureManager::removeSender(SharedTextureSender* sender, bool force)
 void SharedTextureManager::removeReceiver(SharedTextureReceiver* receiver, bool force)
 {
     if (receiver == nullptr) return;
-    if (!force && (OpenGLContext::getCurrentContext() == nullptr || !OpenGLContext::getCurrentContext()->isActive()))
+    if (!force && (juce::OpenGLContext::getCurrentContext() == nullptr || !juce::OpenGLContext::getCurrentContext()->isActive()))
     {
         receiversToRemove.add(receiver);
         return;
@@ -446,4 +573,28 @@ void SharedTextureManager::clearGL()
     
     while (senders.size() > 0) removeSender(senders[0]);
     while (receivers.size() > 0) removeReceiver(receivers[0]);
+}
+
+juce::StringArray SharedTextureManager::getAvailableSenders()
+{
+    juce::StringArray serverList;
+
+    #if JUCE_MAC
+    SyphonServerDirectory* directory = [SyphonServerDirectory sharedDirectory];
+    NSArray* servers = [directory servers];
+
+    for (NSDictionary* serverDescription in servers)
+    {
+        NSString* serverName = [serverDescription objectForKey:SyphonServerDescriptionNameKey];
+        NSString* appName = [serverDescription objectForKey:SyphonServerDescriptionAppNameKey];
+
+        juce::String serverString = juce::String::fromUTF8([serverName UTF8String]);
+        serverString += " - ";
+        serverString += juce::String::fromUTF8([appName UTF8String]);
+
+        serverList.add(serverString);
+    }
+    #endif
+
+    return serverList;
 }
