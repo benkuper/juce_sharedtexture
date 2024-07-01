@@ -19,14 +19,14 @@ glTexCoord2f(0, 1); glVertex2f(x, y + h); \
 glEnd();
 
 SharedTextureSender::SharedTextureSender(const juce::String& name, int width, int height, bool enabled) :
-    isInit(false),
-    sharingName(name),
-    sharingNameChanged(false),
-    enabled(enabled),
-    fbo(nullptr),
-    externalFBO(nullptr),
-    width(width),
-    height(height)
+isInit(false),
+sharingName(name),
+sharingNameChanged(false),
+enabled(enabled),
+fbo(nullptr),
+externalFBO(nullptr),
+width(width),
+height(height)
 {
     
 #if JUCE_WINDOWS
@@ -250,10 +250,7 @@ void SharedTextureReceiver::setSharingName(const juce::String& name, const juce:
     if (receiver == nullptr) return;
     receiver->SetReceiverName(sharingName.toStdString().c_str());
 #elif JUCE_MAC
-    if (receiver)
-    {
-        [receiver setServerName:sharingName.toCFString() appName:sharingAppName.toCFString()];
-    }
+    isInit = false;
 #endif
 }
 
@@ -296,52 +293,55 @@ void SharedTextureReceiver::createReceiver()
 #elif JUCE_MAC
     if (!isInit)
         @try {
-                    SyphonServerDirectory* directory = [SyphonServerDirectory sharedDirectory];
-                    NSArray* servers = [directory servers];
-                    
-                    NSLog(@"Available Syphon servers: %@", servers);
-
-                    NSDictionary* targetServer = nil;
-                    for (NSDictionary* serverInfo in servers)
-                    {
-                        NSString* serverName = [serverInfo objectForKey:SyphonServerDescriptionNameKey];
-                        NSString* appName = [serverInfo objectForKey:SyphonServerDescriptionAppNameKey];
-                        
-                        if ([serverName isEqualToString:(NSString*)sharingName.toCFString()] &&
-                            [appName isEqualToString:(NSString*)sharingAppName.toCFString()])
-                        {
-                            targetServer = serverInfo;
-                            break;
-                        }
-                    }
-
-                    if (targetServer == nil)
-                    {
-                        NSLog(@"Could not find the specified Syphon server");
-                        return;
-                    }
-
-                    NSLog(@"Target server description: %@", targetServer);
-
+            if(receiver) [receiver release];
+            receiver = nullptr;
             
-                    NSOpenGLContext* nsgl = (NSOpenGLContext*)juce::OpenGLContext::getCurrentContext()->getRawContext();
-                    receiver = [[SyphonOpenGLClient alloc] initWithServerDescription:targetServer context:nsgl.CGLContextObj options:nil newFrameHandler:nil];
-                        
-
-                    if (receiver == nil)
-                    {
-                        NSLog(@"Failed to create SyphonClient");
-                        return;
-                    }
-
-                    NSLog(@"SyphonClient created successfully");
-                    
-                    createImageDefinition();
-                    isInit = true;
+            SyphonServerDirectory* directory = [SyphonServerDirectory sharedDirectory];
+            NSArray* servers = [directory servers];
+            
+            //NSLog(@"Available Syphon servers: %@", servers);
+            
+            NSDictionary* targetServer = nil;
+            for (NSDictionary* serverInfo in servers)
+            {
+                NSString* serverName = [serverInfo objectForKey:SyphonServerDescriptionNameKey];
+                NSString* appName = [serverInfo objectForKey:SyphonServerDescriptionAppNameKey];
+                
+                if ([serverName isEqualToString:(NSString*)sharingName.toCFString()] &&
+                    [appName isEqualToString:(NSString*)sharingAppName.toCFString()])
+                {
+                    targetServer = serverInfo;
+                    break;
                 }
-                @catch (NSException *exception) {
-                    NSLog(@"Exception in createReceiver: %@", exception.reason);
-                }
+            }
+            
+            if (targetServer == nil)
+            {
+                NSLog(@"Could not find the specified Syphon server");
+                return;
+            }
+            
+           // NSLog(@"Target server description: %@", targetServer);
+            
+            
+            NSOpenGLContext* nsgl = (NSOpenGLContext*)juce::OpenGLContext::getCurrentContext()->getRawContext();
+            receiver = [[SyphonOpenGLClient alloc] initWithServerDescription:targetServer context:nsgl.CGLContextObj options:nil newFrameHandler:nil];
+            
+            
+            if (receiver == nil)
+            {
+                NSLog(@"Failed to create SyphonClient");
+                return;
+            }
+            
+            //NSLog(@"SyphonClient created successfully");
+            
+            createImageDefinition();
+            isInit = true;
+        }
+    @catch (NSException *exception) {
+        NSLog(@"Exception in createReceiver: %@", exception.reason);
+    }
     
 #endif
     
@@ -419,41 +419,41 @@ void SharedTextureReceiver::renderGL()
 #elif JUCE_MAC
     if (receiver && [receiver hasNewFrame])
     {
-       
-            SyphonOpenGLImage* syphonImage = [receiver newFrameImage];
-            if (syphonImage)
+        
+        SyphonOpenGLImage* syphonImage = [receiver newFrameImage];
+        if (syphonImage)
+        {
+            GLuint textureName = syphonImage.textureName;
+            NSSize textureSize = syphonImage.textureSize;
+            
+            // Update our texture size if it has changed
+            if (width != textureSize.width || height != textureSize.height)
             {
-                GLuint textureName = syphonImage.textureName;
-                NSSize textureSize = syphonImage.textureSize;
-                
-                // Update our texture size if it has changed
-                if (width != textureSize.width || height != textureSize.height)
-                {
-                    width = textureSize.width;
-                    height = textureSize.height;
-                    createImageDefinition();
-                }
-                
-                
-                fbo->makeCurrentAndClear();
-                
-                Init2DViewport(width, height)
-                
-                glEnable(GL_TEXTURE_RECTANGLE_ARB);
-                glDisable(GL_DEPTH_TEST);
-                glColor4f(1,1,1,1);
-                
-                glBindTexture(GL_TEXTURE_RECTANGLE_ARB, textureName);
-                
-                Draw2DTexRect(0, 0, width, height);
-                glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
-                
-                fbo->releaseAsRenderingTarget();
-                
-                success = true;
-                
-                [syphonImage release];
+                width = textureSize.width;
+                height = textureSize.height;
+                createImageDefinition();
             }
+            
+            
+            fbo->makeCurrentAndClear();
+            
+            Init2DViewport(width, height)
+            
+            glEnable(GL_TEXTURE_RECTANGLE_ARB);
+            glDisable(GL_DEPTH_TEST);
+            glColor4f(1,1,1,1);
+            
+            glBindTexture(GL_TEXTURE_RECTANGLE_ARB, textureName);
+            
+            Draw2DTexRect(0, 0, width, height);
+            glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
+            
+            fbo->releaseAsRenderingTarget();
+            
+            success = true;
+            
+            [syphonImage release];
+        }
     }
 #endif
     
@@ -473,14 +473,14 @@ void SharedTextureReceiver::renderGL()
 
 void SharedTextureReceiver::clearGL()
 {
-    #if JUCE_MAC
+#if JUCE_MAC
     if (receiver)
     {
         [receiver stop];
         [receiver release];
         receiver = nullptr;
     }
-    #endif
+#endif
 }
 
 
@@ -578,23 +578,23 @@ void SharedTextureManager::clearGL()
 juce::StringArray SharedTextureManager::getAvailableSenders()
 {
     juce::StringArray serverList;
-
-    #if JUCE_MAC
+    
+#if JUCE_MAC
     SyphonServerDirectory* directory = [SyphonServerDirectory sharedDirectory];
     NSArray* servers = [directory servers];
-
+    
     for (NSDictionary* serverDescription in servers)
     {
         NSString* serverName = [serverDescription objectForKey:SyphonServerDescriptionNameKey];
         NSString* appName = [serverDescription objectForKey:SyphonServerDescriptionAppNameKey];
-
+        
         juce::String serverString = juce::String::fromUTF8([serverName UTF8String]);
         serverString += " - ";
         serverString += juce::String::fromUTF8([appName UTF8String]);
-
+        
         serverList.add(serverString);
     }
-    #endif
-
+#endif
+    
     return serverList;
 }
