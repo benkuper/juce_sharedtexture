@@ -16,13 +16,7 @@
 #endif
 
 #include "juce_sharedtexture.h"
-
-//#if JUCE_WINDOWS
 #include "SharedTexture.cpp"
-//#elif JUCE_MAC
-//#include "SharedTexture.mm"
-
-#endif
 
 
 
