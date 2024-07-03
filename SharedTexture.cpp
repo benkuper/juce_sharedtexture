@@ -406,7 +406,6 @@ void SharedTextureReceiver::renderGL()
 	bool success = false;
 
 #if JUCE_WINDOWS
-	unsigned int receiveWidth = width, receiveHeight = height;
 
 	success = receiver->ReceiveTexture(fbo->getTextureID(), juce::gl::GL_TEXTURE_2D, invertImage);
 	//DBG("Receiver Texture : " << (int)success << " / Get Sender Name [" << sharingName << "] : " << receiver->GetSenderName() << " ( " << (int)receiver->GetSenderWidth() << "x" << (int)receiver->GetSenderHeight() << ")");
