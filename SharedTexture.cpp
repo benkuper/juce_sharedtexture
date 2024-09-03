@@ -40,7 +40,7 @@ SharedTextureSender::~SharedTextureSender()
 {
 #if JUCE_WINDOWS
 	sender->ReleaseSender();
-	sender->Release();
+	//sender->Release();
 	sender = nullptr;
 #endif
 }
@@ -225,7 +225,7 @@ SharedTextureReceiver::~SharedTextureReceiver()
 	if (receiver != nullptr)
 	{
 		receiver->ReleaseReceiver();
-		receiver->Release();
+		//receiver->Release();
 	}
 	receiver = nullptr;
 #elif JUCE_MAC
