@@ -148,6 +148,10 @@ public:
 	virtual void initGL();
 	virtual void renderGL();
 	virtual void clearGL();
+
+#if JUCE_WINDOWS
+	SPOUTLIBRARY* senderDetect;
+#endif
     
     juce::StringArray getAvailableSenders();
 

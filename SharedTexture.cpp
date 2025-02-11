@@ -487,10 +487,18 @@ juce_ImplementSingleton(SharedTextureManager)
 
 SharedTextureManager::SharedTextureManager()
 {
+#if JUCE_WINDOWS
+	senderDetect = GetSpout();
+#endif
 }
 
 SharedTextureManager::~SharedTextureManager()
 {
+#if JUCE_WINDOWS
+	senderDetect->ReleaseSender();
+	senderDetect = nullptr;
+#endif
+
 	while (senders.size() > 0) removeSender(senders[0], true);
 	while (receivers.size() > 0) removeReceiver(receivers[0], true);
 }
@@ -556,6 +564,7 @@ void SharedTextureManager::renderGL()
 
 	for (auto& s : senders) s->renderGL();
 	for (auto& r : receivers) r->renderGL();
+
 }
 
 void SharedTextureManager::clearGL()
@@ -578,7 +587,16 @@ juce::StringArray SharedTextureManager::getAvailableSenders()
 {
 	juce::StringArray serverList;
 
-#if JUCE_MAC
+#if JUCE_WINDOWS
+	int count = senderDetect->GetSenderCount();
+	for (int i = 0; i < count; i++)
+	{
+		char sName[256];
+		bool result = senderDetect->GetSender(i, sName);
+		if(result) serverList.add(juce::String(sName));
+	}
+
+#elif JUCE_MAC
 	SyphonServerDirectory* directory = [SyphonServerDirectory sharedDirectory];
 	NSArray* servers = [directory servers];
 
