@@ -312,15 +312,15 @@ void SharedTextureReceiver::createReceiver() {
             SyphonServerDirectory* directory = [SyphonServerDirectory sharedDirectory];
             NSArray* servers = [directory servers];
 
-            // NSLog(@"Available Syphon servers: %@", servers);
-
             NSDictionary* targetServer = nil;
             for (NSDictionary* serverInfo in servers) {
                 NSString* serverName = [serverInfo objectForKey:SyphonServerDescriptionNameKey];
                 NSString* appName = [serverInfo objectForKey:SyphonServerDescriptionAppNameKey];
 
-                if ([serverName isEqualToString:(NSString*)sharingName.toCFString()] &&
-                    [appName isEqualToString:(NSString*)sharingAppName.toCFString()]) {
+                juce::String sName = juce::String::fromUTF8([serverName UTF8String]);
+                juce::String aName = juce::String::fromUTF8([appName UTF8String]);
+
+                if (sName == sharingName && aName == sharingAppName) {
                     targetServer = serverInfo;
                     break;
                 }
@@ -328,7 +328,14 @@ void SharedTextureReceiver::createReceiver() {
 
             if (targetServer == nil) {
                 if (!createReceiverFailureLogged) {
-                    juce::Logger::writeToLog("[SharedTexture] Could not find Syphon server: \"" + sharingName + "\" app: \"" + sharingAppName + "\"");
+                    juce::String available;
+                    for (NSDictionary* serverInfo in servers) {
+                        NSString* sn = [serverInfo objectForKey:SyphonServerDescriptionNameKey];
+                        NSString* an = [serverInfo objectForKey:SyphonServerDescriptionAppNameKey];
+                        if (available.isNotEmpty()) available += ", ";
+                        available += "\"" + juce::String::fromUTF8([sn UTF8String]) + "\" app: \"" + juce::String::fromUTF8([an UTF8String]) + "\"";
+                    }
+                    juce::Logger::writeToLog("[SharedTexture] Could not find Syphon server: \"" + sharingName + "\" app: \"" + sharingAppName + "\" (available: " + (available.isEmpty() ? "none" : available) + ")");
                     createReceiverFailureLogged = true;
                 }
                 return;
@@ -584,32 +591,29 @@ void SharedTextureManager::clearGL() {
     while (receivers.size() > 0) removeReceiver(receivers[0]);
 }
 
-juce::StringArray SharedTextureManager::getAvailableSenders() {
-    juce::StringArray serverList;
+void SharedTextureManager::getAvailableSenderDetails(juce::StringArray& serverNames, juce::StringArray& appNames) {
+    serverNames.clear();
+    appNames.clear();
 
 #if JUCE_WINDOWS
     int count = senderDetect->GetSenderCount();
     for (int i = 0; i < count; i++) {
         char sName[256];
         bool result = senderDetect->GetSender(i, sName);
-        if (result) serverList.add(juce::String(sName));
+        if (result) {
+            serverNames.add(juce::String(sName));
+            appNames.add(juce::String());
+        }
     }
-
 #elif JUCE_MAC
     SyphonServerDirectory* directory = [SyphonServerDirectory sharedDirectory];
     NSArray* servers = [directory servers];
 
     for (NSDictionary* serverDescription in servers) {
-        NSString* serverName = [serverDescription objectForKey:SyphonServerDescriptionNameKey];
-        NSString* appName = [serverDescription objectForKey:SyphonServerDescriptionAppNameKey];
-
-        juce::String serverString = juce::String::fromUTF8([serverName UTF8String]);
-        serverString += " - ";
-        serverString += juce::String::fromUTF8([appName UTF8String]);
-
-        serverList.add(serverString);
+        NSString* sn = [serverDescription objectForKey:SyphonServerDescriptionNameKey];
+        NSString* an = [serverDescription objectForKey:SyphonServerDescriptionAppNameKey];
+        serverNames.add(juce::String::fromUTF8([sn UTF8String]));
+        appNames.add(juce::String::fromUTF8([an UTF8String]));
     }
 #endif
-
-    return serverList;
 }

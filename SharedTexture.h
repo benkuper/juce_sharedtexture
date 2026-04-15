@@ -156,7 +156,7 @@ public:
 	SPOUTLIBRARY* senderDetect;
 #endif
     
-    juce::StringArray getAvailableSenders();
+	void getAvailableSenderDetails(juce::StringArray& serverNames, juce::StringArray& appNames);
 
 	class  Listener
 	{
