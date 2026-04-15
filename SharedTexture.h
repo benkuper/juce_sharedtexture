@@ -96,6 +96,7 @@ public:
 
 	bool useCPUImage; //useful for manipulations like getPixelAt, but not optimized
 	juce::Image outImage;
+	bool createReceiverFailureLogged = false;
 
 	void setSharingName(const juce::String& name, const juce::String& appName = "");
 

@@ -87,22 +87,28 @@ void SharedTextureSender::createImageDefinition() {
 void SharedTextureSender::setupNativeSender(bool forceRecreation) {
     if (enabled) {
 #if JUCE_WINDOWS
-        if (isInit && !forceRecreation)
+        if (isInit && !forceRecreation) {
             sender->UpdateSender(sharingName.getCharPointer(), width, height);
-        else {
+            juce::Logger::writeToLog("[SharedTexture] Sender updated: \"" + sharingName + "\" " + juce::String(width) + "x" + juce::String(height));
+        } else {
             if (isInit) sender->ReleaseSender();
             sender->CreateSender(sharingName.getCharPointer(), width, height);
             isInit = true;
+            juce::Logger::writeToLog("[SharedTexture] Sender created: \"" + sharingName + "\" " + juce::String(width) + "x" + juce::String(height));
         }
 
         sender->SetSenderName(sharingName.getCharPointer());
 #elif JUCE_MAC
         sender.name = (NSString*)sharingName.toCFString();
         isInit = true;
+        juce::Logger::writeToLog("[SharedTexture] Syphon sender created: \"" + sharingName + "\" " + juce::String(width) + "x" + juce::String(height));
 #endif
     } else {
 #if JUCE_WINDOWS
-        if (isInit) sender->ReleaseSender();
+        if (isInit) {
+            sender->ReleaseSender();
+            juce::Logger::writeToLog("[SharedTexture] Sender released: \"" + sharingName + "\"");
+        }
 #elif JUCE_MAC
 
 #endif
@@ -137,7 +143,7 @@ void SharedTextureSender::renderGL() {
     if (sharedTextureId == 0) {
         if (!isInit || !image.isValid() || image.getWidth() != width || image.getHeight() != height) createImageDefinition();
         if (!image.isValid()) {
-            DBG("Problem creating image");
+            juce::Logger::writeToLog("[SharedTexture] Failed to create sender image: " + juce::String(width) + "x" + juce::String(height));
             return;
         }
 
@@ -170,6 +176,7 @@ void SharedTextureSender::renderGL() {
 }
 
 void SharedTextureSender::clearGL() {
+    juce::Logger::writeToLog("[SharedTexture] Sender clearGL: \"" + sharingName + "\"");
     if (fbo != nullptr) fbo->release();
 
 #if JUCE_WINDOWS
@@ -281,7 +288,10 @@ void SharedTextureReceiver::createReceiver() {
         unsigned int tempHeight = static_cast<unsigned int>(height);
 
         if (!receiver || !receiver->CreateReceiver(senderNameBuf.data(), tempWidth, tempHeight)) {
-            DBG("Could not create receiver");
+            if (!createReceiverFailureLogged) {
+                juce::Logger::writeToLog("[SharedTexture] Failed to create Spout receiver for \"" + sharingName + "\"");
+                createReceiverFailureLogged = true;
+            }
             return;
         }
 
@@ -291,6 +301,7 @@ void SharedTextureReceiver::createReceiver() {
 
         createImageDefinition();
         isInit = true;
+        juce::Logger::writeToLog("[SharedTexture] Spout receiver created: \"" + sharingName + "\" " + juce::String(width) + "x" + juce::String(height));
     }
 #elif JUCE_MAC
     if (!isInit)
@@ -316,7 +327,10 @@ void SharedTextureReceiver::createReceiver() {
             }
 
             if (targetServer == nil) {
-                NSLog(@"Could not find the specified Syphon server");
+                if (!createReceiverFailureLogged) {
+                    juce::Logger::writeToLog("[SharedTexture] Could not find Syphon server: \"" + sharingName + "\" app: \"" + sharingAppName + "\"");
+                    createReceiverFailureLogged = true;
+                }
                 return;
             }
 
@@ -326,14 +340,16 @@ void SharedTextureReceiver::createReceiver() {
             receiver = [[SyphonOpenGLClient alloc] initWithServerDescription:targetServer context:nsgl.CGLContextObj options:nil newFrameHandler:nil];
 
             if (receiver == nil) {
-                NSLog(@"Failed to create SyphonClient");
+                if (!createReceiverFailureLogged) {
+                    juce::Logger::writeToLog("[SharedTexture] Failed to create Syphon client for \"" + sharingName + "\"");
+                    createReceiverFailureLogged = true;
+                }
                 return;
             }
 
-            // NSLog(@"SyphonClient created successfully");
-
             createImageDefinition();
             isInit = true;
+            juce::Logger::writeToLog("[SharedTexture] Syphon receiver created: \"" + sharingName + "\" app: \"" + sharingAppName + "\"");
         }
         @catch (NSException* exception) {
             NSLog(@"Exception in createReceiver: %@", exception.reason);
@@ -469,6 +485,7 @@ void SharedTextureReceiver::renderGL() {
 }
 
 void SharedTextureReceiver::clearGL() {
+    juce::Logger::writeToLog("[SharedTexture] Receiver clearGL: \"" + sharingName + "\"");
 #if JUCE_MAC
     if (receiver) {
         [receiver stop];
@@ -497,12 +514,14 @@ SharedTextureManager::~SharedTextureManager() {
 SharedTextureSender* SharedTextureManager::addSender(const juce::String& name, int width, int height, bool enabled) {
     SharedTextureSender* s = new SharedTextureSender(name, width, height, enabled);
     senders.add(s);
+    juce::Logger::writeToLog("[SharedTexture] Manager: added sender \"" + name + "\" " + juce::String(width) + "x" + juce::String(height) + (enabled ? " enabled" : " disabled"));
     return s;
 }
 
 SharedTextureReceiver* SharedTextureManager::addReceiver(const juce::String& name, const juce::String& appName) {
     SharedTextureReceiver* r = new SharedTextureReceiver(name, appName);
     receivers.add(r);
+    juce::Logger::writeToLog("[SharedTexture] Manager: added receiver \"" + name + "\" app: \"" + appName + "\"");
     return r;
 }
 
@@ -514,6 +533,7 @@ void SharedTextureManager::removeSender(SharedTextureSender* sender, bool force)
         return;
     }
 
+    juce::Logger::writeToLog("[SharedTexture] Manager: removed sender \"" + sender->sharingName + "\"");
     senders.removeObject(sender, false);
     listeners.call(&Listener::senderRemoved, sender);
     delete sender;
@@ -526,6 +546,7 @@ void SharedTextureManager::removeReceiver(SharedTextureReceiver* receiver, bool 
         return;
     }
 
+    juce::Logger::writeToLog("[SharedTexture] Manager: removed receiver \"" + receiver->sharingName + "\"");
     receivers.removeObject(receiver, false);
     listeners.call(&Listener::receiverRemoved, receiver);
     delete receiver;
