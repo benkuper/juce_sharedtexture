@@ -289,7 +289,9 @@ void SharedTextureReceiver::createReceiver() {
 
         if (!receiver || !receiver->CreateReceiver(senderNameBuf.data(), tempWidth, tempHeight)) {
             if (!createReceiverFailureLogged) {
-                juce::Logger::writeToLog("[SharedTexture] Failed to create Spout receiver for \"" + sharingName + "\"");
+                juce::String reason = receiver ? juce::String(receiver->GetSpoutLog()) : "GetSpout() returned null";
+                juce::Logger::writeToLog("[SharedTexture] Failed to create Spout receiver for \"" + sharingName + "\""
+                                         + (reason.isNotEmpty() ? " — " + reason : ""));
                 createReceiverFailureLogged = true;
             }
             return;
