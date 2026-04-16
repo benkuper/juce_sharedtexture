@@ -2,8 +2,10 @@
 
 #ifdef __OBJC__
 @class SyphonOpenGLClient;
+@class SyphonOpenGLServer;
 #else
 class SyphonOpenGLClient;
+class SyphonOpenGLServer;
 #endif
 
 class SharedTextureSender
@@ -15,7 +17,7 @@ public:
 #if JUCE_WINDOWS
 	SPOUTLIBRARY * sender;
 #elif JUCE_MAC
-//    SyphonOpenGLServer* sender;
+    SyphonOpenGLServer* sender;
 #endif
 
 	bool isInit;
@@ -25,9 +27,10 @@ public:
 	bool enabled;
 
 
+    std::function<void()> drawFunction;
 	juce::Image image;
 	juce::OpenGLFrameBuffer *fbo;
-	juce::OpenGLFrameBuffer* externalFBO;
+	GLuint sharedTextureId = 0; // 0 is an invalid value for a texture id
 
 	int width;
 	int height;
@@ -36,7 +39,8 @@ public:
 
 	void setSize(int w, int h);
 
-	void setExternalFBO(juce::OpenGLFrameBuffer * newFBO);
+	void setSharedTextureId(GLuint newTextureId);
+    void setDrawFunction(std::function<void()> newDrawFunction);
 
 	void initGL();
 	void renderGL();
@@ -92,6 +96,7 @@ public:
 
 	bool useCPUImage; //useful for manipulations like getPixelAt, but not optimized
 	juce::Image outImage;
+	bool createReceiverFailureLogged = false;
 
 	void setSharingName(const juce::String& name, const juce::String& appName = "");
 
@@ -123,11 +128,9 @@ public:
 
 };
 
-class SharedTextureManager
+class SharedTextureManager : public juce::DeletedAtShutdown
 {
 public:
-	juce_DeclareSingleton(SharedTextureManager,true);
-
 	SharedTextureManager();
 	virtual ~SharedTextureManager();
 
@@ -148,12 +151,12 @@ public:
 	virtual void initGL();
 	virtual void renderGL();
 	virtual void clearGL();
-
+    
 #if JUCE_WINDOWS
 	SPOUTLIBRARY* senderDetect;
 #endif
     
-    juce::StringArray getAvailableSenders();
+	void getAvailableSenderDetails(juce::StringArray& serverNames, juce::StringArray& appNames);
 
 	class  Listener
 	{
@@ -169,6 +172,4 @@ public:
 	void removeListener(Listener* listener) { listeners.remove(listener); }
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SharedTextureManager)
-
-
 };
