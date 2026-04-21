@@ -276,32 +276,33 @@ void SharedTextureReceiver::createReceiver() {
     if (!isInit) {
         receiver = GetSpout();
 
-        std::vector<char> senderNameBuf(256, 0); // 256 bytes initialized to zero
-
-        // Copy the name into it
-        std::string senderNameStr = sharingName.toStdString();
-        std::memcpy(senderNameBuf.data(), senderNameStr.c_str(),
-            std::min(senderNameStr.size(), size_t(255))); // ensure we don't overflow
-        senderNameBuf[255] = '\0'; // Make absolutely sure it's null terminated
-
-        unsigned int tempWidth = static_cast<unsigned int>(width);
-        unsigned int tempHeight = static_cast<unsigned int>(height);
-
-        if (!receiver || !receiver->CreateReceiver(senderNameBuf.data(), tempWidth, tempHeight)) {
+        if (!receiver) {
             if (!createReceiverFailureLogged) {
-                juce::Logger::writeToLog("[SharedTexture] Failed to create Spout receiver for \"" + sharingName + "\"");
+                juce::Logger::writeToLog("[SharedTexture] Failed to create Spout receiver: GetSpout() returned null");
                 createReceiverFailureLogged = true;
             }
             return;
         }
 
-        // Update our variables with values potentially modified by the function
-        width = static_cast<int>(tempWidth);
-        height = static_cast<int>(tempHeight);
+        // IMPORTANT: Use the modern Spout 2.007+ pattern.
+        //
+        // We deliberately avoid CreateReceiver(name, w, h) here because its
+        // internal CheckReceiver() falls back to Spout's "active sender" when
+        // the named sender is not (yet) in the registry, silently connecting
+        // to the wrong sender. SetReceiverName + ReceiveTexture (in renderGL)
+        // locks selection to exactly the requested sender with no fallback.
+        receiver->SetReceiverName(sharingName.toStdString().c_str());
+
+        // Bootstrap a small placeholder FBO so renderGL has something to receive
+        // into. On the first successful ReceiveTexture, IsUpdated() will be true
+        // and createImageDefinition() will resize the FBO to match the sender.
+        if (width <= 0) width = 16;
+        if (height <= 0) height = 16;
 
         createImageDefinition();
         isInit = true;
-        juce::Logger::writeToLog("[SharedTexture] Spout receiver created: \"" + sharingName + "\" " + juce::String(width) + "x" + juce::String(height));
+        createReceiverFailureLogged = false;
+        juce::Logger::writeToLog("[SharedTexture] Spout receiver initialised for \"" + sharingName + "\" (awaiting first frame)");
     }
 #elif JUCE_MAC
     if (!isInit)
@@ -356,6 +357,7 @@ void SharedTextureReceiver::createReceiver() {
 
             createImageDefinition();
             isInit = true;
+            createReceiverFailureLogged = false;
             juce::Logger::writeToLog("[SharedTexture] Syphon receiver created: \"" + sharingName + "\" app: \"" + sharingAppName + "\"");
         }
         @catch (NSException* exception) {
