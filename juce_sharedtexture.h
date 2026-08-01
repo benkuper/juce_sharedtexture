@@ -58,10 +58,14 @@
 
 #if JUCE_WINDOWS
 #include "SpoutLibrary.h"
-#elif JUCE_MAC
 #endif
 
 
 #include "SharedTexture.h"
+
+// Global accessor for SharedTextureManager
+extern SharedTextureManager* g_SharedTextureManager;
+
+inline SharedTextureManager* getSharedTextureManager() { return g_SharedTextureManager; }
 
 #endif   // JUCE_SHAREDTEXTURE_UI_H_INCLUDED
