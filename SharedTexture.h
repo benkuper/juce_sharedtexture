@@ -23,6 +23,7 @@ public:
 	juce::String sharingName;
 	bool sharingNameChanged;
 	bool enabled;
+	juce::CriticalSection stateLock;
 
 
 	juce::Image image;
@@ -55,7 +56,7 @@ public:
 		virtual void drawSharedTexture(juce::Graphics &g, juce::Rectangle<int> r) = 0;
 	};
 
-	juce::ListenerList<SharedTextureListener> sharedTextureListeners;
+	juce::ListenerList<SharedTextureListener, juce::Array<SharedTextureListener*, juce::CriticalSection>> sharedTextureListeners;
 	void addSharedTextureListener(SharedTextureListener* newListener) { sharedTextureListeners.add(newListener); }
 	void removeSharedTextureListener(SharedTextureListener* listener) { sharedTextureListeners.remove(listener); }
 };
@@ -86,6 +87,7 @@ public:
 	int width;
 	int height;
 	bool invertImage;
+	juce::CriticalSection stateLock;
 
 	juce::Image image;
 	juce::OpenGLFrameBuffer * fbo;
@@ -117,7 +119,7 @@ public:
 		virtual void connectionChanged(SharedTextureReceiver *) {}
 	};
 
-	juce::ListenerList<Listener> listeners;
+	juce::ListenerList<Listener, juce::Array<Listener*, juce::CriticalSection>> listeners;
 	void addListener(Listener* newListener) { listeners.add(newListener); }
 	void removeListener(Listener* listener) { listeners.remove(listener); }
 
@@ -131,11 +133,11 @@ public:
 	SharedTextureManager();
 	virtual ~SharedTextureManager();
 
-	juce::OwnedArray<SharedTextureSender> senders;
-	juce::OwnedArray<SharedTextureReceiver> receivers;
+	juce::OwnedArray<SharedTextureSender, juce::CriticalSection> senders;
+	juce::OwnedArray<SharedTextureReceiver, juce::CriticalSection> receivers;
 
-	juce::Array<SharedTextureSender *> sendersToRemove;
-	juce::Array<SharedTextureReceiver *> receiversToRemove;
+	juce::Array<SharedTextureSender*, juce::CriticalSection> sendersToRemove;
+	juce::Array<SharedTextureReceiver*, juce::CriticalSection> receiversToRemove;
 
 	SharedTextureSender * addSender(const juce::String &name, int width, int height, bool enabled = true);
 	SharedTextureReceiver * addReceiver(const juce::String &name = juce::String(), const juce::String &appName = juce::String());
@@ -164,7 +166,7 @@ public:
 		virtual void GLInitialized() {}
 	};
 
-	juce::ListenerList<Listener> listeners;
+	juce::ListenerList<Listener, juce::Array<Listener*, juce::CriticalSection>> listeners;
 	void addListener(Listener* newListener) { listeners.add(newListener); }
 	void removeListener(Listener* listener) { listeners.remove(listener); }
 

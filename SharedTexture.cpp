@@ -39,31 +39,36 @@ SharedTextureSender::SharedTextureSender(const juce::String& name, int width, in
 SharedTextureSender::~SharedTextureSender()
 {
 #if JUCE_WINDOWS
-	sender->ReleaseSender();
-	//sender->Release();
-	sender = nullptr;
+	if (sender != nullptr)
+	{
+		sender->ReleaseSender();
+		sender->Release();
+		sender = nullptr;
+	}
 #endif
 }
 
 bool SharedTextureSender::canDraw()
 {
+	const juce::ScopedLock stateGuard(stateLock);
 	return juce::OpenGLContext::getCurrentContext() != nullptr && image.isValid();
 }
-
 void SharedTextureSender::setSize(int w, int h)
 {
+	const juce::ScopedLock stateGuard(stateLock);
 	width = w;
 	height = h;
 }
 
 void SharedTextureSender::setExternalFBO(juce::OpenGLFrameBuffer* newFBO)
 {
+	const juce::ScopedLock stateGuard(stateLock);
 	externalFBO = newFBO;
-	setSize(externalFBO->getWidth(), externalFBO->getHeight());
 }
 
 void SharedTextureSender::createImageDefinition()
 {
+	const juce::ScopedLock stateGuard(stateLock);
 	if (width == 0 || height == 0) return;
 
 	if (externalFBO != nullptr) return;
@@ -84,6 +89,7 @@ void SharedTextureSender::createImageDefinition()
 
 void SharedTextureSender::setupNativeSender(bool forceRecreation)
 {
+	const juce::ScopedLock stateGuard(stateLock);
 	if (enabled)
 	{
 #if JUCE_WINDOWS
@@ -118,6 +124,7 @@ void SharedTextureSender::initGL()
 
 void SharedTextureSender::renderGL()
 {
+	const juce::ScopedLock stateGuard(stateLock);
 	if (!enabled)
 	{
 		if (isInit) setupNativeSender();
@@ -171,6 +178,7 @@ void SharedTextureSender::renderGL()
 
 void SharedTextureSender::clearGL()
 {
+	const juce::ScopedLock stateGuard(stateLock);
 	if (fbo != nullptr) fbo->release();
 
 #if JUCE_WINDOWS
@@ -183,6 +191,7 @@ void SharedTextureSender::clearGL()
 
 void SharedTextureSender::setSharingName(juce::String value)
 {
+	const juce::ScopedLock stateGuard(stateLock);
 	if (sharingName == value) return;
 	sharingName = value;
 	sharingNameChanged = true;
@@ -190,6 +199,7 @@ void SharedTextureSender::setSharingName(juce::String value)
 
 void SharedTextureSender::setEnabled(bool value)
 {
+	const juce::ScopedLock stateGuard(stateLock);
 	enabled = value;
 }
 
@@ -225,9 +235,9 @@ SharedTextureReceiver::~SharedTextureReceiver()
 	if (receiver != nullptr)
 	{
 		receiver->ReleaseReceiver();
-		//receiver->Release();
+		receiver->Release();
+		receiver = nullptr;
 	}
-	receiver = nullptr;
 #elif JUCE_MAC
 	[receiver stop];
 	[receiver release] ;
@@ -242,6 +252,7 @@ SharedTextureReceiver::~SharedTextureReceiver()
 
 void SharedTextureReceiver::setSharingName(const juce::String& name, const juce::String& appName)
 {
+	const juce::ScopedLock stateGuard(stateLock);
 	if (name == sharingName && appName == sharingAppName) return;
 	sharingName = name;
 	sharingAppName = appName;
@@ -256,6 +267,7 @@ void SharedTextureReceiver::setSharingName(const juce::String& name, const juce:
 
 void SharedTextureReceiver::setConnected(bool value)
 {
+	const juce::ScopedLock stateGuard(stateLock);
 	if (isConnected == value) return;
 	isConnected = value;
 	listeners.call(&Listener::connectionChanged, this);
@@ -263,6 +275,7 @@ void SharedTextureReceiver::setConnected(bool value)
 
 void SharedTextureReceiver::setUseCPUImage(bool value)
 {
+	const juce::ScopedLock stateGuard(stateLock);
 	if (useCPUImage == value) return;
 	useCPUImage = value;
 	if (!useCPUImage) outImage = juce::Image();
@@ -270,16 +283,19 @@ void SharedTextureReceiver::setUseCPUImage(bool value)
 
 juce::Image& SharedTextureReceiver::getImage()
 {
+	const juce::ScopedLock stateGuard(stateLock);
 	return useCPUImage ? outImage : image;
 }
 
 bool SharedTextureReceiver::canDraw()
 {
+	const juce::ScopedLock stateGuard(stateLock);
 	return getImage().isValid() && juce::OpenGLContext::getCurrentContext() != nullptr;
 }
 
 void SharedTextureReceiver::createReceiver()
 {
+	const juce::ScopedLock stateGuard(stateLock);
 #if JUCE_WINDOWS
 	if (!isInit)
 	{
@@ -351,6 +367,7 @@ void SharedTextureReceiver::createReceiver()
 
 void SharedTextureReceiver::createImageDefinition()
 {
+	const juce::ScopedLock stateGuard(stateLock);
 	if (juce::OpenGLContext::getCurrentContext() == nullptr) return;
 	if (!juce::OpenGLContext::getCurrentContext()->isActive()) return;
 
@@ -393,6 +410,7 @@ void SharedTextureReceiver::initGL()
 
 void SharedTextureReceiver::renderGL()
 {
+	const juce::ScopedLock stateGuard(stateLock);
 
 	if (!enabled) return;
 	if (!isInit)
@@ -472,6 +490,7 @@ void SharedTextureReceiver::renderGL()
 
 void SharedTextureReceiver::clearGL()
 {
+	const juce::ScopedLock stateGuard(stateLock);
 #if JUCE_MAC
 	if (receiver)
 	{
@@ -495,8 +514,12 @@ SharedTextureManager::SharedTextureManager()
 SharedTextureManager::~SharedTextureManager()
 {
 #if JUCE_WINDOWS
-	senderDetect->ReleaseSender();
-	senderDetect = nullptr;
+	if (senderDetect != nullptr)
+	{
+		senderDetect->ReleaseSender();
+		senderDetect->Release();
+		senderDetect = nullptr;
+	}
 #endif
 
 	while (senders.size() > 0) removeSender(senders[0], true);
@@ -523,7 +546,7 @@ void SharedTextureManager::removeSender(SharedTextureSender* sender, bool force)
 
 	if (!force && (juce::OpenGLContext::getCurrentContext() == nullptr || !juce::OpenGLContext::getCurrentContext()->isActive()))
 	{
-		sendersToRemove.add(sender);
+		sendersToRemove.addIfNotAlreadyThere(sender);
 		return;
 	}
 
@@ -537,7 +560,7 @@ void SharedTextureManager::removeReceiver(SharedTextureReceiver* receiver, bool 
 	if (receiver == nullptr) return;
 	if (!force && (juce::OpenGLContext::getCurrentContext() == nullptr || !juce::OpenGLContext::getCurrentContext()->isActive()))
 	{
-		receiversToRemove.add(receiver);
+		receiversToRemove.addIfNotAlreadyThere(receiver);
 		return;
 	}
 
@@ -548,6 +571,8 @@ void SharedTextureManager::removeReceiver(SharedTextureReceiver* receiver, bool 
 
 void SharedTextureManager::initGL()
 {
+	const juce::ScopedLock sendersLock(senders.getLock());
+	const juce::ScopedLock receiversLock(receivers.getLock());
 	for (auto& s : senders) s->initGL();
 	for (auto& r : receivers) r->initGL();
 
@@ -556,28 +581,49 @@ void SharedTextureManager::initGL()
 
 void SharedTextureManager::renderGL()
 {
-	for (auto& s : sendersToRemove) removeSender(s);
-	sendersToRemove.clear();
+	{
+		const juce::ScopedLock lock(sendersToRemove.getLock());
+		for (auto& s : sendersToRemove) removeSender(s);
+		sendersToRemove.clear();
+	}
 
-	for (auto& r : receiversToRemove) removeReceiver(r);
-	receiversToRemove.clear();
+	{
+		const juce::ScopedLock lock(receiversToRemove.getLock());
+		for (auto& r : receiversToRemove) removeReceiver(r);
+		receiversToRemove.clear();
+	}
 
-	for (auto& s : senders) s->renderGL();
-	for (auto& r : receivers) r->renderGL();
-
+	{
+		const juce::ScopedLock lock(senders.getLock());
+		for (auto& s : senders) s->renderGL();
+	}
+	{
+		const juce::ScopedLock lock(receivers.getLock());
+		for (auto& r : receivers) r->renderGL();
+	}
 }
-
 void SharedTextureManager::clearGL()
 {
-	for (auto& s : sendersToRemove) removeSender(s);
-	sendersToRemove.clear();
+	{
+		const juce::ScopedLock lock(sendersToRemove.getLock());
+		for (auto& s : sendersToRemove) removeSender(s);
+		sendersToRemove.clear();
+	}
 
-	for (auto& r : receiversToRemove) removeReceiver(r);
-	receiversToRemove.clear();
+	{
+		const juce::ScopedLock lock(receiversToRemove.getLock());
+		for (auto& r : receiversToRemove) removeReceiver(r);
+		receiversToRemove.clear();
+	}
 
-
-	for (auto& s : senders) s->clearGL();
-	for (auto& r : receivers) r->clearGL();
+	{
+		const juce::ScopedLock lock(senders.getLock());
+		for (auto& s : senders) s->clearGL();
+	}
+	{
+		const juce::ScopedLock lock(receivers.getLock());
+		for (auto& r : receivers) r->clearGL();
+	}
 
 	while (senders.size() > 0) removeSender(senders[0]);
 	while (receivers.size() > 0) removeReceiver(receivers[0]);
